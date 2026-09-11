@@ -5,5 +5,6 @@
  */
 export { NameForm } from './components/name-form'
 export { PasswordForm } from './components/password-form'
+export { PinForm } from './components/pin-form'
 export { ProfileCard } from './components/profile-card'
 export { ProfileMenu } from './components/profile-menu'

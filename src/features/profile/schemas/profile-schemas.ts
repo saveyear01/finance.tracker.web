@@ -45,3 +45,32 @@ export const passwordSchema = z
   })
 
 export type PasswordFormValues = z.infer<typeof passwordSchema>
+
+/** Mirrors the API's `Pin`: exactly six digits. */
+const sixDigits = z.string().regex(/^\d{6}$/, 'Enter 6 digits.')
+
+export const pinSchema = z
+  .object({
+    pin: sixDigits,
+    // Client-only, like the password's: a mistyped PIN you can't repeat is
+    // one you'd have to reset with the password.
+    confirm_pin: z.string(),
+    current_password: z.string().min(1, 'Enter your password.'),
+  })
+  .superRefine((values, ctx) => {
+    if (values.confirm_pin !== values.pin) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['confirm_pin'],
+        message: "PINs don't match.",
+      })
+    }
+  })
+
+export type PinFormValues = z.infer<typeof pinSchema>
+
+export const turnOffPinSchema = z.object({
+  current_password: z.string().min(1, 'Enter your password.'),
+})
+
+export type TurnOffPinFormValues = z.infer<typeof turnOffPinSchema>

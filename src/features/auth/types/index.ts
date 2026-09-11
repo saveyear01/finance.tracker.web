@@ -14,6 +14,8 @@ export type CurrentUser = {
   last_login: string | null
   /** Stored per user, so it follows them across devices. */
   theme: ThemePreference
+  /** Whether a quick-unlock PIN is set. The PIN never leaves the server. */
+  has_pin: boolean
   /** Derived server-side from first/last name. */
   name: string
 }
@@ -34,4 +36,11 @@ export type PasswordChange = {
 export type LoginCredentials = {
   email: string
   password: string
+}
+
+/** Input for `PUT /api/users/me/pin/` — `pin: null` turns the PIN off. */
+export type PinChange = {
+  current_password: string
+  /** Exactly six digits, as a string so a leading zero survives. */
+  pin: string | null
 }
