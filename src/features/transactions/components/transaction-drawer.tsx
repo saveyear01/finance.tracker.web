@@ -12,6 +12,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
+import { useCurrentUser } from '@/features/auth'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
@@ -19,6 +20,7 @@ import { cn } from '@/lib/utils'
 import { useReverseAction, useTransactionGroup } from '../hooks/use-transactions'
 import {
   TYPE_NAMES,
+  authorLabel,
   describe,
   editableActionOf,
   formatActivityDate,
@@ -78,6 +80,7 @@ export function TransactionDrawer({
   }
 
   const group = useTransactionGroup(groupId)
+  const { user } = useCurrentUser()
   const reverse = useReverseAction()
 
   // The tapped row stands in until the whole action has loaded.
@@ -126,7 +129,11 @@ export function TransactionDrawer({
                   {step === 'confirm-delete'
                     ? 'A reversal dated today puts the money back where it was. Both stay in your history.'
                     : // The kind of entry, unless the title already says it.
-                      [first.note && kind, formatActivityDate(first.date)]
+                      [
+                        first.note && kind,
+                        formatActivityDate(first.date),
+                        authorLabel(first, user?.id),
+                      ]
                         .filter(Boolean)
                         .join(' · ')}
                 </DrawerDescription>

@@ -96,6 +96,15 @@ export function describe(entry: Transaction): { label: string; icon: LucideIcon 
   }
 }
 
+/**
+ * "by you" / "by Ada" — who recorded an entry, now that everyone in the
+ * household shares the ledger. Null when unknown (the account is gone).
+ */
+export function authorLabel(entry: Transaction, meId: string | undefined): string | null {
+  if (!entry.created_by_id) return null
+  return entry.created_by_id === meId ? 'by you' : `by ${entry.created_by_name ?? 'someone'}`
+}
+
 /** "Sep 11" — the year only when it is not this year. */
 export function formatActivityDate(isoDate: string): string {
   // Parsed as a local date: `new Date('2026-09-11')` would be UTC midnight,

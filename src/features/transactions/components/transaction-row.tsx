@@ -1,7 +1,8 @@
+import { useCurrentUser } from '@/features/auth'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
-import { describe, formatActivityDate } from '../lib/transaction-meta'
+import { authorLabel, describe, formatActivityDate } from '../lib/transaction-meta'
 import type { Transaction } from '../types'
 
 /**
@@ -16,6 +17,9 @@ import type { Transaction } from '../types'
  * A reversed (deleted) entry stays in the list, struck through: the history
  * reads as it happened, and its reversal sits further up.
  *
+ * The household shares the ledger, so each row ends with who recorded it —
+ * "by you" or "by Ada".
+ *
  * With `onSelect` the whole card is a button that opens the entry.
  */
 export function TransactionRow({
@@ -28,6 +32,7 @@ export function TransactionRow({
   onSelect?: (entry: Transaction) => void
 }) {
   const { label, icon: Icon } = describe(entry)
+  const { user } = useCurrentUser()
   const incoming = Number(entry.amount) > 0
   const reversed = entry.reversed_by_group_id !== null
   const details = [
@@ -35,6 +40,7 @@ export function TransactionRow({
     entry.fund_name,
     entry.wallet_name,
     showDate ? formatActivityDate(entry.date) : null,
+    authorLabel(entry, user?.id),
   ].filter(Boolean)
 
   const body = (

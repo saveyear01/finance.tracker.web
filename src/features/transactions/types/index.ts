@@ -29,6 +29,9 @@ export type Transaction = {
   /** On a reversal's legs: the action they undo, and what kind it was. */
   reverses_group_id: string | null
   reverses_type: TransactionType | null
+  /** Who recorded it — the household shares the ledger. Null if the account is gone. */
+  created_by_id: string | null
+  created_by_name: string | null
 }
 
 /**
