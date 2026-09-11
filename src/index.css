@@ -220,19 +220,3 @@
     @apply font-sans;
   }
 }
-
-/* The PIN dots after a wrong PIN (`LockScreen`). */
-@keyframes pin-shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  20%,
-  60% {
-    transform: translateX(-8px);
-  }
-  40%,
-  80% {
-    transform: translateX(8px);
-  }
-}

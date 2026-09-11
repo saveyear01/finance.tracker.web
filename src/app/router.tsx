@@ -1,7 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import { AppLayout } from '@/components/layouts/app-layout'
-import { AppLock, ProtectedRoute } from '@/features/auth'
+import { ProtectedRoute } from '@/features/auth'
 
 import { FundsRoute } from './routes/funds'
 import { HomeRoute } from './routes/home'
@@ -25,10 +25,7 @@ export function AppRouter() {
         <Route
           element={
             <ProtectedRoute>
-              {/* Inside the guard: only a signed-in account has a PIN. */}
-              <AppLock>
-                <AppLayout />
-              </AppLock>
+              <AppLayout />
             </ProtectedRoute>
           }
         >

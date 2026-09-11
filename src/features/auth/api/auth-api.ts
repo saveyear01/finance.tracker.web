@@ -1,12 +1,6 @@
 import { apiClient, unwrap } from '@/lib/api-client'
 
-import type {
-  CurrentUser,
-  LoginCredentials,
-  PasswordChange,
-  PinChange,
-  ProfileUpdate,
-} from '../types'
+import type { CurrentUser, LoginCredentials, PasswordChange, ProfileUpdate } from '../types'
 
 /**
  * `POST /api/auth/login/` — validates the credentials, sets the `access_token`
@@ -41,21 +35,4 @@ export function updateProfile(update: ProfileUpdate): Promise<CurrentUser> {
  */
 export async function changePassword(change: PasswordChange): Promise<void> {
   await apiClient.put('/users/me/password/', change)
-}
-
-/**
- * `PUT /api/users/me/pin/` — set, change or (`pin: null`) remove the
- * quick-unlock PIN. Needs the current password (a wrong one is a 400).
- */
-export function setPin(change: PinChange): Promise<CurrentUser> {
-  return unwrap(apiClient.put<CurrentUser>('/users/me/pin/', change))
-}
-
-/**
- * `POST /api/auth/unlock/` — 204 when the PIN is right. Wrong: 400
- * `pin_incorrect` with `details.attempts_left`. The fifth wrong one in a row:
- * 403 `pin_locked`, and every session is signed out.
- */
-export async function unlockWithPin(pin: string): Promise<void> {
-  await apiClient.post('/auth/unlock/', { pin })
 }
