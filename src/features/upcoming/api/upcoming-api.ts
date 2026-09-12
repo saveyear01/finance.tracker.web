@@ -9,19 +9,33 @@ import type {
 
 /**
  * `GET /upcoming-expenses/due/` — bills due in `month` (YYYY-MM), paid or
- * not, soonest first. `carryOverdue` adds every unpaid due date before the
- * month: the current month's tab keeps overdue bills in view.
+ * not, soonest first.
+ *
+ * `through` (YYYY-MM) widens it from one month to a range ending there — the
+ * "later" tab's several months. `carryOverdue` adds every unpaid due date
+ * before the window: the current month's tab keeps overdue bills in view.
+ * `excludeMonthly` drops bills that repeat every month, which over a long
+ * window would otherwise bury everything else.
  */
 export function listDue({
   month,
+  through,
   carryOverdue,
+  excludeMonthly,
 }: {
   month: string
-  carryOverdue: boolean
+  through?: string
+  carryOverdue?: boolean
+  excludeMonthly?: boolean
 }): Promise<Occurrence[]> {
   return unwrap(
     apiClient.get<Occurrence[]>('/upcoming-expenses/due/', {
-      params: { month, carry_overdue: carryOverdue },
+      params: {
+        month,
+        ...(through && { through }),
+        ...(carryOverdue && { carry_overdue: true }),
+        ...(excludeMonthly && { exclude_monthly: true }),
+      },
     }),
   )
 }

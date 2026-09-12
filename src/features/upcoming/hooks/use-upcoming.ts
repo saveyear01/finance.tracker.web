@@ -15,11 +15,26 @@ import {
 } from '../api/upcoming-api'
 import { upcomingKeys } from '../api/upcoming-keys'
 
-/** One month's bills. `carryOverdue` for the current month's tab. */
-export function useDue(month: string, { carryOverdue = false } = {}) {
+/**
+ * One month's bills — or a range of them, with `through`.
+ *
+ * `carryOverdue` for the current month's tab; `excludeMonthly` for the later
+ * tab, where every-month bills would crowd out what is actually worth
+ * looking ahead for.
+ */
+export function useDue(
+  month: string,
+  {
+    through,
+    carryOverdue = false,
+    excludeMonthly = false,
+  }: { through?: string; carryOverdue?: boolean; excludeMonthly?: boolean } = {},
+) {
+  // Normalised, so the same query never lands under two different keys.
+  const options = { through, carryOverdue, excludeMonthly }
   const query = useQuery({
-    queryKey: upcomingKeys.dueMonth(month, carryOverdue),
-    queryFn: () => listDue({ month, carryOverdue }),
+    queryKey: upcomingKeys.dueMonth(month, options),
+    queryFn: () => listDue({ month, ...options }),
   })
   return { ...query, occurrences: query.data ?? [] }
 }

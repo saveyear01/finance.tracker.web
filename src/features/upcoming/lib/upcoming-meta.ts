@@ -28,6 +28,23 @@ export function currentAndNextMonth(now = new Date()): { current: string; next: 
   }
 }
 
+/**
+ * The "later" window: everything after next month, to the end of THIS year.
+ *
+ * Deliberately stops at the year's end rather than running on for twelve
+ * months — a year is how people think about what is still to come, and it
+ * keeps the tab from filling with dates that are barely decided yet.
+ *
+ * From November the window is empty, because "after next month" is already
+ * next year by then. `empty` says so rather than leaving the caller to
+ * compare month strings.
+ */
+export function laterWindow(now = new Date()): { from: string; through: string; empty: boolean } {
+  const from = monthKeyOf(new Date(now.getFullYear(), now.getMonth() + 2, 1))
+  const through = `${now.getFullYear()}-12`
+  return { from, through, empty: from > through }
+}
+
 /** "2026-09" → "September", with the year only when it isn't this year. */
 export function monthName(monthKey: string): string {
   const [year, month] = monthKey.split('-').map(Number)

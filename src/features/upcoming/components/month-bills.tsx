@@ -14,27 +14,44 @@ import type { Occurrence, UpcomingExpense } from '../types'
 import { UpcomingRow } from './upcoming-row'
 
 /**
- * One month's bills: what's left to pay and what's been paid, then every due
- * date in the month, soonest first. The current month also carries overdue
- * bills from before it (`carryOverdue`), at the top.
+ * A window's bills: what's left to pay and what's been paid, then every due
+ * date in it, soonest first.
+ *
+ * Usually one month. With `through` it spans several — the later tab — and
+ * with `excludeMonthly` the bills that repeat every month are left out of
+ * it, since over a long window they would crowd out the one-offs that are
+ * the reason to look ahead. That omission is said out loud above the list:
+ * a tab that quietly drops your rent is worse than one that has none.
+ *
+ * The current month also carries overdue bills from before it
+ * (`carryOverdue`), at the top.
  */
 export function MonthBills({
   month,
+  through,
   carryOverdue = false,
+  excludeMonthly = false,
   onAdd,
   onPay,
   onEdit,
   onDelete,
 }: {
-  /** YYYY-MM. */
+  /** YYYY-MM — the window's first month. */
   month: string
+  /** YYYY-MM — its last, when the window is more than one month. */
+  through?: string
   carryOverdue?: boolean
+  excludeMonthly?: boolean
   onAdd: () => void
   onPay: (occurrence: Occurrence) => void
   onEdit: (expense: UpcomingExpense) => void
   onDelete: (expense: UpcomingExpense) => void
 }) {
-  const { occurrences, isLoading, isError, error } = useDue(month, { carryOverdue })
+  const { occurrences, isLoading, isError, error } = useDue(month, {
+    through,
+    carryOverdue,
+    excludeMonthly,
+  })
   const skip = useSkipUpcoming()
   const undo = useUndoSkip()
   const today = localToday()
@@ -74,14 +91,26 @@ export function MonthBills({
   }
   const add = <AddCard label="Add new upcoming expense" onClick={onAdd} />
 
+  // A window ending before it starts is a real answer, not a bug: from
+  // November, "after next month" is already next year, which this tab
+  // deliberately stops short of.
+  const spansYear = through !== undefined
+  const emptyTitle = spansYear
+    ? `Nothing else due in ${month.slice(0, 4)}`
+    : `Nothing due in ${monthName(month)}`
+
   if (occurrences.length === 0) {
     return (
       <div className="space-y-3">
         {add}
         <EmptyState
           icon={CalendarCheck}
-          title={`Nothing due in ${monthName(month)}`}
-          description="Add the bills you know are coming — rent, internet, insurance — and they show up in the month they're due."
+          title={emptyTitle}
+          description={
+            excludeMonthly
+              ? "One-off and yearly bills due later this year show up here. The ones that repeat every month stay on their own tabs."
+              : "Add the bills you know are coming — rent, internet, insurance — and they show up in the month they're due."
+          }
         />
       </div>
     )
@@ -106,6 +135,12 @@ export function MonthBills({
           </p>
         </div>
       </div>
+
+      {excludeMonthly && (
+        <p className="text-xs text-muted-foreground">
+          One-off and yearly bills only — the ones that repeat every month are on the month tabs.
+        </p>
+      )}
 
       {add}
       <ul className="space-y-2">

@@ -76,10 +76,12 @@ export function editAction({
 }
 
 /**
- * "Delete" an action: record its opposite, dated `date` (the user's today).
- * The original stays in the history, marked reversed. A 409 when it was
- * already reversed or its money has since been spent (`insufficient_funds`).
+ * Delete an action outright — every leg gone, balances back where they were,
+ * no trace and no undo (decided 2026-09-12, in place of the reversal entry
+ * this used to record). A 409 `insufficient_funds` when its money has since
+ * been spent, or `transaction_reversed` when an old reversal still points at
+ * it — that reversal has to go first.
  */
-export function reverseAction(input: { group_id: string; date: string }): Promise<Transaction[]> {
-  return unwrap(apiClient.post<Transaction[]>('/transactions/reversal/', input))
+export function deleteAction(groupId: string): Promise<void> {
+  return unwrap(apiClient.delete<void>(`/transactions/${groupId}/`))
 }

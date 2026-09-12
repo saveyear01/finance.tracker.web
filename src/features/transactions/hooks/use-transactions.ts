@@ -15,7 +15,7 @@ import {
   reallocate,
   recordExpense,
   recordIncome,
-  reverseAction,
+  deleteAction,
   transfer,
 } from '../api/transactions-api'
 import { transactionKeys } from '../api/transactions-keys'
@@ -108,7 +108,7 @@ export function useEditAction() {
   return useMutation({ mutationFn: editAction, onSuccess: invalidate })
 }
 
-export function useReverseAction() {
+export function useDeleteAction() {
   const invalidate = useLedgerInvalidation()
-  return useMutation({ mutationFn: reverseAction, onSuccess: invalidate })
+  return useMutation({ mutationFn: deleteAction, onSuccess: invalidate })
 }

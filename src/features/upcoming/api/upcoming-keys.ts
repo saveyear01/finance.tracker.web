@@ -13,6 +13,8 @@ import { transactionKeys } from '@/features/transactions'
 export const upcomingKeys = {
   all: ['upcoming-expenses'] as const,
   due: () => [...transactionKeys.all, 'upcoming-due'] as const,
-  dueMonth: (month: string, carryOverdue: boolean) =>
-    [...upcomingKeys.due(), { month, carryOverdue }] as const,
+  dueMonth: (
+    month: string,
+    options: { through?: string; carryOverdue?: boolean; excludeMonthly?: boolean },
+  ) => [...upcomingKeys.due(), { month, ...options }] as const,
 }

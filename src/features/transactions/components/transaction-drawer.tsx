@@ -17,14 +17,13 @@ import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
-import { useReverseAction, useTransactionGroup } from '../hooks/use-transactions'
+import { useDeleteAction, useTransactionGroup } from '../hooks/use-transactions'
 import {
   TYPE_NAMES,
   authorLabel,
   describe,
   editableActionOf,
   formatActivityDate,
-  localToday,
 } from '../lib/transaction-meta'
 import type { Transaction } from '../types'
 import { ActionDrawer } from './action-drawer'
@@ -52,9 +51,13 @@ function headline(legs: Transaction[]): { cents: number; signed: boolean } {
  * Delete.
  *
  * Edit hands over to the action's own drawer, filled in. Delete confirms
- * first, then records a reversal — the original stays in the history, struck
- * through, and the reversal puts its money back. Neither is offered on a
- * reversal, or on an entry already reversed.
+ * first, then really deletes: every leg goes and the balances go back, with
+ * no trace and no undo (decided 2026-09-12).
+ *
+ * Entries from before that still carry reversals — an original marked
+ * reversed, or the reversal itself. Those keep their old rules: the original
+ * can't be changed while its reversal stands, and a reversal is never edited.
+ * Deleting the reversal is how such a pair gets cleared.
  */
 export function TransactionDrawer({
   entry,
@@ -81,7 +84,7 @@ export function TransactionDrawer({
 
   const group = useTransactionGroup(groupId)
   const { user } = useCurrentUser()
-  const reverse = useReverseAction()
+  const remove = useDeleteAction()
 
   // The tapped row stands in until the whole action has loaded.
   const legs = group.legs.length > 0 ? group.legs : entry ? [entry] : []
@@ -95,23 +98,23 @@ export function TransactionDrawer({
     : first.type === 'reversal'
       ? describe(first).label
       : TYPE_NAMES[first.type]
-  const changeable = action !== null && !reversed
+  // Edit and Delete part company on old reversal pairs: a reversal is never
+  // edited, but deleting it is exactly how the pair gets cleared. Neither is
+  // offered on an original while its reversal still stands.
+  const editable = action !== null && !reversed
+  const deletable = !reversed
   const { cents, signed } = headline(legs)
 
   const close = () => dismiss(false)
-  const remove = () =>
+  const confirmDelete = () =>
     first &&
-    reverse.mutate(
-      { group_id: first.group_id, date: localToday() },
-      {
-        onSuccess: () => {
-          toast.success('Deleted. Its money is back where it came from.')
-          close()
-        },
+    remove.mutate(first.group_id, {
+      onSuccess: () => {
+        toast.success('Deleted. Its money is back where it came from.')
+        close()
       },
-    )
-  const deleteError =
-    reverse.isError && reverse.variables?.group_id === groupId ? reverse.error : null
+    })
+  const deleteError = remove.isError && remove.variables === groupId ? remove.error : null
 
   return (
     <>
@@ -127,7 +130,7 @@ export function TransactionDrawer({
                 </DrawerTitle>
                 <DrawerDescription>
                   {step === 'confirm-delete'
-                    ? 'A reversal dated today puts the money back where it was. Both stay in your history.'
+                    ? "This removes it for good and puts its money back where it was. There's no undo."
                     : // The kind of entry, unless the title already says it.
                       [
                         first.note && kind,
@@ -174,7 +177,8 @@ export function TransactionDrawer({
                 {reversed && (
                   <Alert>
                     <AlertDescription>
-                      Deleted. A reversal put its money back, so it can't be changed any more.
+                      Deleted earlier by a reversal, which put its money back. Delete that
+                      reversal to be rid of the pair.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -185,7 +189,8 @@ export function TransactionDrawer({
                       {first.reverses_type
                         ? TYPE_NAMES[first.reverses_type].toLowerCase()
                         : 'entry'}
-                      . A reversal can't be edited or deleted.
+                      , from before deleting really deleted. It can't be edited, but it can
+                      be deleted.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -203,7 +208,7 @@ export function TransactionDrawer({
                 )}
               </div>
 
-              {changeable && (
+              {(editable || deletable) && (
                 <DrawerFooter className="pt-2">
                   {step === 'confirm-delete' ? (
                     <>
@@ -211,11 +216,11 @@ export function TransactionDrawer({
                         variant="destructive"
                         size="lg"
                         className="h-11"
-                        disabled={reverse.isPending}
-                        onClick={remove}
+                        disabled={remove.isPending}
+                        onClick={confirmDelete}
                       >
-                        {reverse.isPending && <Loader2 className="animate-spin" />}
-                        {reverse.isPending ? 'Deleting…' : 'Delete'}
+                        {remove.isPending && <Loader2 className="animate-spin" />}
+                        {remove.isPending ? 'Deleting…' : 'Delete'}
                       </Button>
                       <Button
                         variant="outline"
@@ -229,29 +234,34 @@ export function TransactionDrawer({
                   ) : (
                     <>
                       {/* Both wait for the whole action: an edit must start
-                          from every leg, not just the row that was tapped. */}
-                      <Button
-                        size="lg"
-                        className="h-11"
-                        disabled={!loaded}
-                        onClick={() => go('edit')}
-                      >
-                        <Pencil />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        className="h-11 text-destructive hover:text-destructive"
-                        disabled={!loaded}
-                        onClick={() => {
-                          reverse.reset()
-                          go('confirm-delete')
-                        }}
-                      >
-                        <Trash2 />
-                        Delete
-                      </Button>
+                          from every leg, not just the row that was tapped,
+                          and a delete takes all of them with it. */}
+                      {editable && (
+                        <Button
+                          size="lg"
+                          className="h-11"
+                          disabled={!loaded}
+                          onClick={() => go('edit')}
+                        >
+                          <Pencil />
+                          Edit
+                        </Button>
+                      )}
+                      {deletable && (
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="h-11 text-destructive hover:text-destructive"
+                          disabled={!loaded}
+                          onClick={() => {
+                            remove.reset()
+                            go('confirm-delete')
+                          }}
+                        >
+                          <Trash2 />
+                          Delete
+                        </Button>
+                      )}
                     </>
                   )}
                 </DrawerFooter>
