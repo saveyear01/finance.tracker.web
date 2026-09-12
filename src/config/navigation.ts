@@ -2,6 +2,7 @@ import {
   ArrowUpDown,
   CalendarClock,
   House,
+  Landmark,
   UserRound,
   Wallet,
   type LucideIcon,
@@ -29,10 +30,9 @@ export type NavItem = {
  * The one nav definition. The desktop sidebar and the mobile tab bar both
  * render this array, so an item can never exist in one and not the other.
  *
- * Only pages that exist are listed — never a dead link. The pill has four
- * since Wallets and Funds merged (2026-09-11, the user kept it at four):
- * home, funds, arrows, profile. Upcoming is sidebar-only; on a phone it's
- * reached from Home.
+ * Only pages that exist are listed — never a dead link. The pill carries the
+ * reference's five: home, funds, arrows, debts, profile. Upcoming is the one
+ * sidebar-only page; on a phone it's reached from Home.
  */
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Home', to: '/', icon: House, end: true },
@@ -40,6 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Funds', to: '/funds', icon: Wallet },
   { label: 'Transactions', to: '/transactions', icon: ArrowUpDown },
   { label: 'Upcoming', to: '/upcoming', icon: CalendarClock, inPill: false },
+  { label: 'Debts', to: '/debts', icon: Landmark },
   { label: 'Profile', to: '/profile', icon: UserRound },
 ]
 
@@ -60,4 +61,24 @@ export type SubPage = {
 export const SUB_PAGES: SubPage[] = [
   { path: '/profile/settings', title: 'Profile settings', back: '/profile' },
   { path: '/profile/income-split', title: 'Income split', back: '/profile' },
+  // One debt in full. `:debtId` stands for any one segment — see `matchSubPage`.
+  { path: '/debts/:debtId', title: 'Debt', back: '/debts' },
 ]
+
+/**
+ * The sub-page a path is, if it is one.
+ *
+ * A `:param` segment matches any single non-empty segment, so a detail page
+ * is listed once rather than per record. Segment counts must match, so
+ * `/debts` itself stays a section rather than becoming its own detail page.
+ */
+export function matchSubPage(pathname: string): SubPage | undefined {
+  const parts = pathname.split('/')
+  return SUB_PAGES.find((page) => {
+    const pattern = page.path.split('/')
+    if (pattern.length !== parts.length) return false
+    return pattern.every((segment, i) =>
+      segment.startsWith(':') ? parts[i] !== '' : segment === parts[i],
+    )
+  })
+}

@@ -3,6 +3,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layouts/app-layout'
 import { ProtectedRoute } from '@/features/auth'
 
+import { DebtDetailRoute } from './routes/debt-detail'
+import { DebtsRoute } from './routes/debts'
 import { FundsRoute } from './routes/funds'
 import { HomeRoute } from './routes/home'
 import { LoginRoute } from './routes/login'
@@ -35,6 +37,8 @@ export function AppRouter() {
           <Route path="/funds" element={<FundsRoute />} />
           <Route path="/transactions" element={<TransactionsRoute />} />
           <Route path="/upcoming" element={<UpcomingRoute />} />
+          <Route path="/debts" element={<DebtsRoute />} />
+          <Route path="/debts/:debtId" element={<DebtDetailRoute />} />
           <Route path="/profile" element={<ProfileRoute />} />
           <Route path="/profile/settings" element={<ProfileSettingsRoute />} />
           <Route path="/profile/income-split" element={<ProfileIncomeSplitRoute />} />

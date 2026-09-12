@@ -51,7 +51,7 @@ export function WalletsTab() {
           </label>
 
           <AddCard
-            label="New wallet"
+            label="Add new wallet"
             onClick={() => {
               setEditing(null)
               setDrawerOpen(true)

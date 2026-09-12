@@ -72,7 +72,7 @@ export function MonthBills({
       </Alert>
     )
   }
-  const add = <AddCard label="New upcoming expense" onClick={onAdd} />
+  const add = <AddCard label="Add new upcoming expense" onClick={onAdd} />
 
   if (occurrences.length === 0) {
     return (

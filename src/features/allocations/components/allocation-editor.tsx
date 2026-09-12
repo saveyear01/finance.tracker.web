@@ -159,7 +159,7 @@ export function AllocationEditor() {
           at the end: row order is the tie-break for spare cents, so adding
           one never changes which existing row gets them. */}
       <AddCard
-        label={canAdd ? 'Add an allocation' : 'Every allocation is in the list'}
+        label={canAdd ? 'Add new allocation' : 'Every allocation is in the list'}
         disabled={!canAdd}
         onClick={() =>
           append({

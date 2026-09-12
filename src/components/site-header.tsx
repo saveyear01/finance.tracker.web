@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { env } from '@/config/env'
-import { NAV_ITEMS, SUB_PAGES } from '@/config/navigation'
+import { matchSubPage, NAV_ITEMS } from '@/config/navigation'
 import { useCurrentUser } from '@/features/auth'
 
 /** Navigation state a link can pass so a sub-page's back button returns to it. */
@@ -23,7 +23,7 @@ type BackState = { from?: string }
 function usePageHeading(): { title: string; back?: string; mobileBack?: string } {
   const { pathname, state } = useLocation()
 
-  const sub = SUB_PAGES.find((page) => page.path === pathname)
+  const sub = matchSubPage(pathname)
   if (sub) {
     const from = (state as BackState | null)?.from
     // In-app paths only — state is ours, but a relative path is never meant.

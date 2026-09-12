@@ -51,7 +51,7 @@ export function AllocationsTab() {
           </label>
 
           <AddCard
-            label="New allocation"
+            label="Add new allocation"
             onClick={() => {
               setEditing(null)
               setDrawerOpen(true)
