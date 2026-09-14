@@ -1,8 +1,12 @@
+import { useSearchParams } from 'react-router-dom'
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { currentAndNextMonth, laterWindow, monthName } from '../lib/upcoming-meta'
-import type { Occurrence, UpcomingExpense } from '../types'
 import { MonthBills } from './month-bills'
+
+const TABS = ['current', 'next', 'later'] as const
+type UpcomingTab = (typeof TABS)[number]
 
 /**
  * The upcoming expenses in three tabs: this month (with anything overdue
@@ -14,19 +18,29 @@ import { MonthBills } from './month-bills'
  * look that far ahead. It stops at the year's end rather than running on
  * indefinitely, so what it shows stays something you can still act on.
  *
+ * The tab lives in the URL (`?tab=later`), as it does on Funds: opening a due
+ * date and coming back should land where you were, and a row passes this
+ * path along for its back button. Flipping tabs replaces the history entry
+ * rather than adding one — it isn't navigating.
+ *
  * Months are the user's own calendar's, not the server's.
  */
-export function UpcomingTabs(props: {
-  onAdd: () => void
-  onPay: (occurrence: Occurrence) => void
-  onEdit: (expense: UpcomingExpense) => void
-  onDelete: (expense: UpcomingExpense) => void
-}) {
+export function UpcomingTabs({ onAdd }: { onAdd: () => void }) {
+  const [params, setParams] = useSearchParams()
+  const requested = params.get('tab')
+  const tab: UpcomingTab = TABS.includes(requested as UpcomingTab)
+    ? (requested as UpcomingTab)
+    : 'current'
+
   const { current, next } = currentAndNextMonth()
   const later = laterWindow()
 
   return (
-    <Tabs defaultValue="current" className="gap-4">
+    <Tabs
+      value={tab}
+      onValueChange={(value) => setParams({ tab: value }, { replace: true })}
+      className="gap-4"
+    >
       <TabsList className="h-10! w-full">
         {/* Short labels, so all three fit a phone; the months are in the
             tooltip and in each tab's own empty state. */}
@@ -48,16 +62,16 @@ export function UpcomingTabs(props: {
         </TabsTrigger>
       </TabsList>
       <TabsContent value="current">
-        <MonthBills month={current} carryOverdue {...props} />
+        <MonthBills month={current} carryOverdue onAdd={onAdd} />
       </TabsContent>
       <TabsContent value="next">
-        <MonthBills month={next} {...props} />
+        <MonthBills month={next} onAdd={onAdd} />
       </TabsContent>
       <TabsContent value="later">
         {/* An empty window (from November, when "after next month" is already
             next year) needs no special case: the API answers it with nothing,
             and the tab says so. */}
-        <MonthBills month={later.from} through={later.through} excludeMonthly {...props} />
+        <MonthBills month={later.from} through={later.through} excludeMonthly onAdd={onAdd} />
       </TabsContent>
     </Tabs>
   )

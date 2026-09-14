@@ -20,10 +20,14 @@ import type { UpcomingExpense } from '../types'
 export function DeleteUpcomingDrawer({
   expense,
   onOpenChange,
+  onDeleted,
 }: {
   /** The bill being deleted, or null when the drawer is shut. */
   expense: UpcomingExpense | null
   onOpenChange: (open: boolean) => void
+  /** Called once it's gone — a due date's own page leaves for the list,
+   * since every due date went with the bill. */
+  onDeleted?: () => void
 }) {
   const remove = useDeleteUpcoming()
 
@@ -65,6 +69,7 @@ export function DeleteUpcomingDrawer({
                 onSuccess: () => {
                   toast.success(`${expense.name} deleted.`)
                   close(false)
+                  onDeleted?.()
                 },
               })
             }

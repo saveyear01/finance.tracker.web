@@ -12,6 +12,7 @@ import { ProfileRoute } from './routes/profile'
 import { ProfileIncomeSplitRoute } from './routes/profile-income-split'
 import { ProfileSettingsRoute } from './routes/profile-settings'
 import { TransactionsRoute } from './routes/transactions'
+import { UpcomingDetailRoute } from './routes/upcoming-detail'
 import { UpcomingRoute } from './routes/upcoming'
 
 export function AppRouter() {
@@ -37,6 +38,7 @@ export function AppRouter() {
           <Route path="/funds" element={<FundsRoute />} />
           <Route path="/transactions" element={<TransactionsRoute />} />
           <Route path="/upcoming" element={<UpcomingRoute />} />
+          <Route path="/upcoming/:expenseId/:dueDate" element={<UpcomingDetailRoute />} />
           <Route path="/debts" element={<DebtsRoute />} />
           <Route path="/debts/:debtId" element={<DebtDetailRoute />} />
           <Route path="/profile" element={<ProfileRoute />} />

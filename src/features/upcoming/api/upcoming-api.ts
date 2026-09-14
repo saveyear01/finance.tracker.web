@@ -40,6 +40,22 @@ export function listDue({
   )
 }
 
+/**
+ * `GET /upcoming-expenses/{id}/occurrences/{date}/` — one due date in full:
+ * where it stands and every payment towards it. 404 if the bill doesn't fall
+ * on that day. Fetched on its own so the occurrence's page works from a link
+ * or a reload, not only from the list.
+ */
+export function getOccurrence({
+  id,
+  dueDate,
+}: {
+  id: string
+  dueDate: string
+}): Promise<Occurrence> {
+  return unwrap(apiClient.get<Occurrence>(`/upcoming-expenses/${id}/occurrences/${dueDate}/`))
+}
+
 export function createUpcoming(input: UpcomingExpenseInput): Promise<UpcomingExpense> {
   return unwrap(apiClient.post<UpcomingExpense>('/upcoming-expenses/', input))
 }

@@ -1,56 +1,20 @@
 import { useState } from 'react'
 
-import {
-  DeleteUpcomingDrawer,
-  PayDrawer,
-  UpcomingDrawer,
-  UpcomingTabs,
-  type Occurrence,
-  type UpcomingExpense,
-} from '@/features/upcoming'
+import { UpcomingDrawer, UpcomingTabs } from '@/features/upcoming'
 
+/**
+ * Upcoming expenses, a tab per window. A row opens that due date's own page,
+ * which is where it is paid, skipped, edited or deleted — the list stays a
+ * list, so adding a bill is all this route has to hold.
+ */
 export function UpcomingRoute() {
   const [drawerOpen, setDrawerOpen] = useState(false)
-  // Each doubles as its drawer's open state.
-  const [editing, setEditing] = useState<UpcomingExpense | null>(null)
-  const [paying, setPaying] = useState<Occurrence | null>(null)
-  const [deleting, setDeleting] = useState<UpcomingExpense | null>(null)
 
   return (
     <div className="mx-auto w-full max-w-xl space-y-4">
-      <UpcomingTabs
-        onAdd={() => {
-          setEditing(null)
-          setDrawerOpen(true)
-        }}
-        onPay={setPaying}
-        onEdit={(expense) => {
-          setEditing(expense)
-          setDrawerOpen(true)
-        }}
-        onDelete={setDeleting}
-      />
+      <UpcomingTabs onAdd={() => setDrawerOpen(true)} />
 
-      <UpcomingDrawer
-        open={drawerOpen}
-        expense={editing}
-        onOpenChange={(open) => {
-          setDrawerOpen(open)
-          if (!open) setEditing(null)
-        }}
-      />
-      <PayDrawer
-        occurrence={paying}
-        onOpenChange={(open) => {
-          if (!open) setPaying(null)
-        }}
-      />
-      <DeleteUpcomingDrawer
-        expense={deleting}
-        onOpenChange={(open) => {
-          if (!open) setDeleting(null)
-        }}
-      />
+      <UpcomingDrawer open={drawerOpen} expense={null} onOpenChange={setDrawerOpen} />
     </div>
   )
 }

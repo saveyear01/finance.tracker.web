@@ -1,12 +1,18 @@
-import { CalendarClock, CalendarX2, CircleCheck, CircleSlash, PieChart } from 'lucide-react'
+import {
+  CalendarClock,
+  CalendarX2,
+  ChevronRight,
+  CircleCheck,
+  CircleSlash,
+  PieChart,
+} from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
 
-import { Button } from '@/components/ui/button'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
 import { RECURRENCE_BADGES, shortDate, statusOf, type RowStatus } from '../lib/upcoming-meta'
-import type { Occurrence, UpcomingExpense } from '../types'
-import { UpcomingActions } from './upcoming-actions'
+import type { Occurrence } from '../types'
 
 const STATUS_ICON = {
   paid: CircleCheck,
@@ -30,27 +36,23 @@ const ICON_TONE: Record<RowStatus, string> = {
  * never changes; a partly paid one says how much of it is paid), what was
  * paid once paid.
  *
- * Owed ones carry Pay; overdue ones also Skip. A skipped one stays, muted,
- * and its menu can undo the skip.
+ * The whole row opens that due date's own page, which is where it is paid,
+ * skipped, edited or deleted, and where its payments are listed. The list
+ * stays a list: a month of bills reads at a glance rather than as a wall of
+ * buttons, and staggered payments have somewhere to live.
+ *
+ * The link carries where it was opened from, so the page's back button
+ * returns to the tab you were on rather than always the first one.
  */
 export function UpcomingRow({
   occurrence,
   today,
-  onPay,
-  onSkip,
-  onUndoSkip,
-  onEdit,
-  onDelete,
 }: {
   occurrence: Occurrence
   /** YYYY-MM-DD in the user's timezone — what "overdue" is measured from. */
   today: string
-  onPay: (occurrence: Occurrence) => void
-  onSkip: (occurrence: Occurrence) => void
-  onUndoSkip: (occurrence: Occurrence) => void
-  onEdit: (expense: UpcomingExpense) => void
-  onDelete: (expense: UpcomingExpense) => void
 }) {
+  const { pathname, search } = useLocation()
   const { expense, payments } = occurrence
   const status = statusOf(occurrence, today)
   const Icon = STATUS_ICON[status]
@@ -70,38 +72,40 @@ export function UpcomingRow({
   const badge = RECURRENCE_BADGES[expense.recurrence]
 
   return (
-    <li
-      className={cn(
-        'flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-card-foreground',
-        status === 'skipped' && 'opacity-70',
-      )}
-    >
-      <span
-        className={cn('grid size-10 shrink-0 place-items-center rounded-full', ICON_TONE[status])}
+    <li>
+      <Link
+        to={`/upcoming/${expense.id}/${occurrence.due_date}`}
+        state={{ from: `${pathname}${search}` }}
+        className={cn(
+          'flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-card-foreground transition-colors outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50',
+          status === 'skipped' && 'opacity-70',
+        )}
       >
-        <Icon className="size-4" aria-hidden="true" />
-      </span>
+        <span
+          className={cn('grid size-10 shrink-0 place-items-center rounded-full', ICON_TONE[status])}
+        >
+          <Icon className="size-4" aria-hidden="true" />
+        </span>
 
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{expense.name}</p>
-        <p className="truncate text-xs text-muted-foreground">
-          <span
-            className={cn(
-              status === 'paid' && 'text-success',
-              status === 'overdue' && 'font-medium text-destructive',
-            )}
-          >
-            {when}
-          </span>
-          {badge && ` · ${badge}`}
-        </p>
-        {progress && <p className="truncate text-xs text-muted-foreground">{progress}</p>}
-      </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium">{expense.name}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            <span
+              className={cn(
+                status === 'paid' && 'text-success',
+                status === 'overdue' && 'font-medium text-destructive',
+              )}
+            >
+              {when}
+            </span>
+            {badge && ` · ${badge}`}
+          </p>
+          {progress && <p className="truncate text-xs text-muted-foreground">{progress}</p>}
+        </div>
 
-      <div className="flex shrink-0 flex-col items-end gap-1">
         <span
           className={cn(
-            'font-semibold tabular-nums',
+            'shrink-0 font-semibold tabular-nums',
             status === 'skipped' && 'text-muted-foreground line-through',
           )}
         >
@@ -109,26 +113,8 @@ export function UpcomingRow({
             owed ? occurrence.remaining : status === 'paid' ? occurrence.paid : expense.amount,
           )}
         </span>
-        {owed && (
-          <div className="flex gap-1">
-            {status === 'overdue' && (
-              <Button size="xs" variant="outline" onClick={() => onSkip(occurrence)}>
-                Skip
-              </Button>
-            )}
-            <Button size="xs" onClick={() => onPay(occurrence)}>
-              Pay
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <UpcomingActions
-        expense={expense}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        onUndoSkip={status === 'skipped' ? () => onUndoSkip(occurrence) : undefined}
-      />
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      </Link>
     </li>
   )
 }

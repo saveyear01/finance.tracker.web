@@ -63,6 +63,8 @@ export const SUB_PAGES: SubPage[] = [
   { path: '/profile/income-split', title: 'Income split', back: '/profile' },
   // One debt in full. `:debtId` stands for any one segment — see `matchSubPage`.
   { path: '/debts/:debtId', title: 'Debt', back: '/debts' },
+  // One due date of one bill.
+  { path: '/upcoming/:expenseId/:dueDate', title: 'Upcoming expense', back: '/upcoming' },
 ]
 
 /**

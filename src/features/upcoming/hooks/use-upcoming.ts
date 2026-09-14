@@ -7,6 +7,7 @@ import { walletKeys } from '@/features/wallets'
 import {
   createUpcoming,
   deleteUpcoming,
+  getOccurrence,
   listDue,
   payUpcoming,
   skipUpcoming,
@@ -37,6 +38,19 @@ export function useDue(
     queryFn: () => listDue({ month, ...options }),
   })
   return { ...query, occurrences: query.data ?? [] }
+}
+
+/**
+ * One due date in full, for its own page. Fetched rather than picked out of
+ * a month's list, so opening it by link or reloading works on its own.
+ */
+export function useOccurrence(id: string | undefined, dueDate: string | undefined) {
+  const query = useQuery({
+    queryKey: upcomingKeys.occurrence(id ?? '', dueDate ?? ''),
+    queryFn: () => getOccurrence({ id: id as string, dueDate: dueDate as string }),
+    enabled: Boolean(id && dueDate),
+  })
+  return { ...query, occurrence: query.data }
 }
 
 /** Changing a bill changes the due lists, nothing else. */

@@ -1,5 +1,4 @@
 import { CalendarCheck } from 'lucide-react'
-import { toast } from 'sonner'
 
 import { AddCard } from '@/components/add-card'
 import { EmptyState } from '@/components/layouts/empty-state'
@@ -8,9 +7,8 @@ import { localToday } from '@/features/transactions'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 
-import { useDue, useSkipUpcoming, useUndoSkip } from '../hooks/use-upcoming'
+import { useDue } from '../hooks/use-upcoming'
 import { monthName, summarize } from '../lib/upcoming-meta'
-import type { Occurrence, UpcomingExpense } from '../types'
 import { UpcomingRow } from './upcoming-row'
 
 /**
@@ -25,6 +23,9 @@ import { UpcomingRow } from './upcoming-row'
  *
  * The current month also carries overdue bills from before it
  * (`carryOverdue`), at the top.
+ *
+ * Rows are links: paying, skipping, editing and deleting all live on the due
+ * date's own page, so nothing here needs handlers for them.
  */
 export function MonthBills({
   month,
@@ -32,9 +33,6 @@ export function MonthBills({
   carryOverdue = false,
   excludeMonthly = false,
   onAdd,
-  onPay,
-  onEdit,
-  onDelete,
 }: {
   /** YYYY-MM — the window's first month. */
   month: string
@@ -43,39 +41,13 @@ export function MonthBills({
   carryOverdue?: boolean
   excludeMonthly?: boolean
   onAdd: () => void
-  onPay: (occurrence: Occurrence) => void
-  onEdit: (expense: UpcomingExpense) => void
-  onDelete: (expense: UpcomingExpense) => void
 }) {
   const { occurrences, isLoading, isError, error } = useDue(month, {
     through,
     carryOverdue,
     excludeMonthly,
   })
-  const skip = useSkipUpcoming()
-  const undo = useUndoSkip()
   const today = localToday()
-
-  // No confirmation — a skip is one tap to undo, from the toast or the menu.
-  const undoSkip = ({ expense, due_date }: Occurrence) =>
-    undo.mutate(
-      { id: expense.id, dueDate: due_date },
-      {
-        onSuccess: () => toast.success(`${expense.name} is due again.`),
-        onError: (err) => toast.error(getApiErrorMessage(err)),
-      },
-    )
-  const skipOne = (occurrence: Occurrence) =>
-    skip.mutate(
-      { id: occurrence.expense.id, dueDate: occurrence.due_date, today },
-      {
-        onSuccess: () =>
-          toast.success(`${occurrence.expense.name} skipped.`, {
-            action: { label: 'Undo', onClick: () => undoSkip(occurrence) },
-          }),
-        onError: (err) => toast.error(getApiErrorMessage(err)),
-      },
-    )
 
   if (isLoading) {
     return <div className="h-48 animate-pulse rounded-xl bg-muted" aria-hidden="true" />
@@ -149,11 +121,6 @@ export function MonthBills({
             key={`${occurrence.expense.id}:${occurrence.due_date}`}
             occurrence={occurrence}
             today={today}
-            onPay={onPay}
-            onSkip={skipOne}
-            onUndoSkip={undoSkip}
-            onEdit={onEdit}
-            onDelete={onDelete}
           />
         ))}
       </ul>
