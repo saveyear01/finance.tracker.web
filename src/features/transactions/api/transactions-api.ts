@@ -30,6 +30,29 @@ export function listTransactions({
   )
 }
 
+/**
+ * `GET /api/transactions/notes/` — notes the household has already used on
+ * this kind of action, most used first, then most recent, deduped ignoring
+ * case and surrounding space.
+ *
+ * The whole list comes back at once and is filtered in the browser as the
+ * note is typed: a household's distinct notes are few, it saves a request per
+ * keystroke, and a cached list still suggests (and snaps) while offline.
+ */
+export function listNoteSuggestions({
+  action,
+  limit,
+}: {
+  action: EditableAction
+  limit?: number
+}): Promise<string[]> {
+  return unwrap(
+    apiClient.get<string[]>('/transactions/notes/', {
+      params: { action, ...(limit && { limit }) },
+    }),
+  )
+}
+
 /*
  * One endpoint per action, each responding with the entries it created — a
  * split income comes back as several. All of an action's entries are written

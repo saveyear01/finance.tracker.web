@@ -19,7 +19,6 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { FieldError } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useAllocation } from '@/features/allocations'
 import { useFunds } from '@/features/funds'
@@ -29,13 +28,16 @@ import { formatMoney } from '@/lib/money'
 
 import {
   useEditAction,
+  useNoteSuggestions,
   useReallocate,
   useRecordExpense,
   useRecordIncome,
   useTransfer,
 } from '../hooks/use-transactions'
+import { snapNote } from '../lib/notes'
 import { ACTION_META, localToday } from '../lib/transaction-meta'
 import { actionSchema, type ActionFormValues } from '../schemas/action-schema'
+import { NoteField } from './note-field'
 import type {
   AdjustmentInput,
   EditableAction,
@@ -195,6 +197,7 @@ export function ActionDrawer({
   const { wallets } = useWallets()
   const { funds } = useFunds()
   const { rules } = useAllocation()
+  const { suggestions: noteSuggestions } = useNoteSuggestions(action)
 
   const recordIncome = useRecordIncome()
   const recordExpense = useRecordExpense()
@@ -246,7 +249,6 @@ export function ActionDrawer({
 
   const {
     control,
-    register,
     handleSubmit,
     reset,
     setValue,
@@ -331,7 +333,9 @@ export function ActionDrawer({
     const common = {
       amount: values.amount,
       date: values.date,
-      note: values.note.trim() || undefined,
+      // Snapped once more here: submitting from the keypad can send the form
+      // without the note field ever blurring.
+      note: snapNote(values.note, noteSuggestions) || undefined,
     }
     const done = {
       onSuccess: (entries: Transaction[]) => {
@@ -557,11 +561,17 @@ export function ActionDrawer({
                 />
 
                 <div className="grid grid-cols-[1fr_auto] gap-2">
-                  <Input
-                    placeholder={via?.notePlaceholder ?? 'Add notes…'}
-                    aria-label="Note"
-                    className="h-11 text-base md:text-sm"
-                    {...register('note')}
+                  <Controller
+                    control={control}
+                    name="note"
+                    render={({ field }) => (
+                      <NoteField
+                        action={action}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder={via?.notePlaceholder}
+                      />
+                    )}
                   />
                   <Controller
                     control={control}

@@ -11,6 +11,7 @@ import { walletKeys } from '@/features/wallets'
 import {
   editAction,
   getTransactionGroup,
+  listNoteSuggestions,
   listTransactions,
   reallocate,
   recordExpense,
@@ -19,6 +20,7 @@ import {
   transfer,
 } from '../api/transactions-api'
 import { transactionKeys } from '../api/transactions-keys'
+import type { EditableAction } from '../types'
 
 /** The latest few entries — Home's Recent Activity. */
 export function useRecentTransactions(limit = 10) {
@@ -61,6 +63,26 @@ export function useTransactionGroup(groupId: string | null) {
   })
 
   return { ...query, legs: query.data ?? [] }
+}
+
+/**
+ * The notes already used on this kind of action — what the note field
+ * suggests, and what a typed note is snapped onto when it differs only in
+ * case or spacing.
+ *
+ * Fetched once per action and filtered in the browser while typing. It sits
+ * under `transactionKeys.all`, so recording or editing an entry refreshes it
+ * along with everything else: a note used just now should be offered next
+ * time without a reload.
+ */
+export function useNoteSuggestions(action: EditableAction | null) {
+  const query = useQuery({
+    queryKey: transactionKeys.notes(action ?? 'expense'),
+    queryFn: () => listNoteSuggestions({ action: action! }),
+    enabled: action !== null,
+  })
+
+  return { ...query, suggestions: query.data ?? [] }
 }
 
 /**
