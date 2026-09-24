@@ -17,7 +17,7 @@ export const upcomingKeys = {
     [...upcomingKeys.due(), 'occurrence', id, dueDate] as const,
   // Under `due()` too: what a pinned bill shows is its next due date still
   // to pay, which paying (in the ledger) moves on.
-  pinned: () => [...upcomingKeys.due(), 'pinned'] as const,
+  pinned: (month: string) => [...upcomingKeys.due(), 'pinned', { month }] as const,
   dueMonth: (
     month: string,
     options: { through?: string; carryOverdue?: boolean; excludeMonthly?: boolean },

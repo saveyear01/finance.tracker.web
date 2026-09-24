@@ -6,12 +6,17 @@ import { localToday } from '@/features/transactions'
 import { getApiErrorMessage } from '@/lib/api-client'
 
 import { usePinned } from '../hooks/use-upcoming'
+import { currentAndNextMonth } from '../lib/upcoming-meta'
 import { UpcomingRow } from './upcoming-row'
 
 /**
  * Home's pinned expenses: the bills the household pinned for quick access,
- * each as the due date to pay next — soonest first, so what's due next (or
- * already late) is at the top.
+ * as they stand THIS month — the Upcoming page's current-month tab cut down
+ * to pinned bills (decided 2026-09-24). So a paid recurring bill stays in
+ * view, paid, until the month is over rather than jumping ahead to next
+ * month's date; overdue ones carry in, late being still this month's
+ * business; and a pin due in a later month waits for its month. The month
+ * is the user's own, sent to the API.
  *
  * The same rows as the month tabs, so a bill reads the same on Home as on
  * Upcoming, and each opens that due date's own page, where Pay is one tap
@@ -21,7 +26,7 @@ import { UpcomingRow } from './upcoming-row'
  * says where to go when nothing is pinned yet.
  */
 export function PinnedExpenses() {
-  const { occurrences, isLoading, isError, error } = usePinned()
+  const { occurrences, isLoading, isError, error } = usePinned(currentAndNextMonth().current)
   const today = localToday()
 
   if (isLoading) {
@@ -42,8 +47,8 @@ export function PinnedExpenses() {
     return (
       <EmptyState
         icon={Pin}
-        title="Nothing pinned yet"
-        description="Open an upcoming expense and pin it, and it stays here for quick access."
+        title="Nothing pinned this month"
+        description="Open an upcoming expense and pin it, and it shows up here in the months it's due."
       />
     )
   }

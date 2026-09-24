@@ -141,6 +141,8 @@ export function UpcomingDetail({
   const owed = status === 'overdue' || status === 'partial' || status === 'due'
   const paidCents = Math.round(Number(occurrence.paid) * 100)
   const amountCents = Math.round(Number(expense.amount) * 100)
+  // Paid past the bill's amount — `remaining` is negative by that much.
+  const overCents = status === 'paid' ? Math.max(0, paidCents - amountCents) : 0
   const progress = amountCents > 0 ? Math.min(100, Math.round((paidCents / amountCents) * 100)) : 100
   const tile = tileParts(occurrence.due_date)
 
@@ -237,12 +239,28 @@ export function UpcomingDetail({
           </button>
         </div>
 
+        {/* Paid past the amount: the headline becomes the overrun, negative
+            and red — "−₱2,000.00 over budget" is the figure the user wants
+            to see, not a total that stops at "paid". */}
         <div className="border-t border-border px-4 py-4">
           <p className="text-xs text-muted-foreground">
-            {owed ? 'Still to pay' : status === 'paid' ? 'Paid in full' : 'Paid before skipping'}
+            {owed
+              ? 'Still to pay'
+              : overCents > 0
+                ? 'Over budget'
+                : status === 'paid'
+                  ? 'Paid in full'
+                  : 'Paid before skipping'}
           </p>
-          <p className="mt-0.5 text-3xl font-semibold tracking-tight tabular-nums">
-            {formatMoney(owed ? occurrence.remaining : occurrence.paid)}
+          <p
+            className={cn(
+              'mt-0.5 text-3xl font-semibold tracking-tight tabular-nums',
+              overCents > 0 && 'text-destructive',
+            )}
+          >
+            {overCents > 0
+              ? `−${formatMoney(overCents / 100)}`
+              : formatMoney(owed ? occurrence.remaining : occurrence.paid)}
           </p>
 
           {paidCents > 0 && (
@@ -278,11 +296,18 @@ export function UpcomingDetail({
 
       {/* Pay is the whole point of the page, so it gets the full width and
           nothing to compete with. The rest sit under it, plainly secondary —
-          a row of equal buttons made none of them look like the one to press. */}
-      {owed && (
-        <Button size="lg" className="h-12 w-full text-base" onClick={() => onPay(occurrence)}>
+          a row of equal buttons made none of them look like the one to press.
+          A paid bill can still be paid — more goes over its amount — so only
+          a skipped one loses the button, quieter once paid. */}
+      {status !== 'skipped' && (
+        <Button
+          size="lg"
+          variant={owed ? 'default' : 'outline'}
+          className="h-12 w-full text-base"
+          onClick={() => onPay(occurrence)}
+        >
           <Wallet />
-          Pay this bill
+          {owed ? 'Pay this bill' : 'Pay more'}
         </Button>
       )}
       <div className="flex gap-2">

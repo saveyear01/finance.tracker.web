@@ -59,9 +59,12 @@ export function UpcomingRow({
   const Icon = STATUS_ICON[status]
   const owed = status === 'overdue' || status === 'partial' || status === 'due'
   const partlyPaid = Number(occurrence.paid) > 0 && status !== 'paid'
-  const progress = partlyPaid
-    ? `${formatMoney(occurrence.paid)} of ${formatMoney(expense.amount)} paid`
-    : null
+  // Paid past the bill's amount: the API's `remaining` is negative by that much.
+  const over = status === 'paid' && Number(occurrence.remaining) < 0
+  const progress =
+    partlyPaid || over
+      ? `${formatMoney(occurrence.paid)} of ${formatMoney(expense.amount)} paid`
+      : null
 
   const when = {
     paid: `Paid ${shortDate(payments.at(-1)?.paid_on ?? occurrence.due_date)}`,
@@ -110,15 +113,21 @@ export function UpcomingRow({
           {progress && <p className="truncate text-xs text-muted-foreground">{progress}</p>}
         </div>
 
+        {/* What's left while owed; what was paid once paid — unless it went
+            OVER, when the figure is the overrun, negative and red, so a
+            bill that ran past its budget says so from the list. */}
         <span
           className={cn(
             'shrink-0 font-semibold tabular-nums',
             status === 'skipped' && 'text-muted-foreground line-through',
+            over && 'text-destructive',
           )}
         >
-          {formatMoney(
-            owed ? occurrence.remaining : status === 'paid' ? occurrence.paid : expense.amount,
-          )}
+          {over
+            ? `−${formatMoney(-Number(occurrence.remaining))}`
+            : formatMoney(
+                owed ? occurrence.remaining : status === 'paid' ? occurrence.paid : expense.amount,
+              )}
         </span>
         <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </Link>

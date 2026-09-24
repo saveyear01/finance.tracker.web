@@ -57,12 +57,13 @@ export function getOccurrence({
 }
 
 /**
- * `GET /upcoming-expenses/pinned/` — every pinned bill as the due date to act
- * on next (the earliest still owed; a one-off's only date whatever became of
- * it), soonest first. Home's quick-access list.
+ * `GET /upcoming-expenses/pinned/` — the pinned bills' due dates in `month`
+ * (YYYY-MM, the user's current month), paid or not, plus earlier ones still
+ * owed: the current month's tab cut down to pinned bills. Home's
+ * quick-access list, soonest first.
  */
-export function listPinned(): Promise<Occurrence[]> {
-  return unwrap(apiClient.get<Occurrence[]>('/upcoming-expenses/pinned/'))
+export function listPinned({ month }: { month: string }): Promise<Occurrence[]> {
+  return unwrap(apiClient.get<Occurrence[]>('/upcoming-expenses/pinned/', { params: { month } }))
 }
 
 /** Pin a bill to Home. Already pinned: nothing changes. */
@@ -95,9 +96,10 @@ export function deleteUpcoming(id: string): Promise<void> {
 
 /**
  * Pay towards one due date: records a real expense in the ledger and links
- * it. Less than what's left leaves the rest due. A 409 `insufficient_funds`
- * (with `details.available`) when the fund can't cover it, `already_paid`,
- * or `occurrence_skipped`.
+ * it. Less than what's left leaves the rest due; more — or paying one
+ * already paid — goes over, and `remaining` comes back negative. A 409
+ * `insufficient_funds` (with `details.available`) when the fund can't cover
+ * it, or `occurrence_skipped`.
  */
 export function payUpcoming({
   id,

@@ -56,9 +56,13 @@ export function useOccurrence(id: string | undefined, dueDate: string | undefine
   return { ...query, occurrence: query.data }
 }
 
-/** The pinned bills, each as the due date to pay next — Home's list. */
-export function usePinned() {
-  const query = useQuery({ queryKey: upcomingKeys.pinned(), queryFn: listPinned })
+/** The pinned bills' due dates in `month` (plus earlier ones still owed) —
+ * Home's list. */
+export function usePinned(month: string) {
+  const query = useQuery({
+    queryKey: upcomingKeys.pinned(month),
+    queryFn: () => listPinned({ month }),
+  })
   return { ...query, occurrences: query.data ?? [] }
 }
 

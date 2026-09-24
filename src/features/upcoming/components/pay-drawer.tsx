@@ -21,8 +21,9 @@ function asTyped(amount: string): string {
  *
  * It starts on what's left to pay; less leaves the rest due (a partial
  * payment — the bill's own amount doesn't change), more is fine too, since
- * bills vary. The note defaults to the bill's name, which is how the expense
- * reads in the activity.
+ * bills vary. A bill already paid starts empty and any amount goes over —
+ * the overrun the page then shows. The note defaults to the bill's name,
+ * which is how the expense reads in the activity.
  */
 export function PayDrawer({
   occurrence,
@@ -34,15 +35,17 @@ export function PayDrawer({
 }) {
   const pay = usePayUpcoming()
 
+  const paidUp = occurrence !== null && Number(occurrence.remaining) <= 0
   const via = occurrence && {
     title: `Pay ${occurrence.expense.name}`,
-    description:
-      (Number(occurrence.paid) > 0
-        ? `Due ${shortDate(occurrence.due_date)} · ${formatMoney(occurrence.paid)} of ${formatMoney(occurrence.expense.amount)} paid. `
-        : `Due ${shortDate(occurrence.due_date)}. `) +
-      "Paying less than what's left leaves the rest due.",
+    description: paidUp
+      ? `Due ${shortDate(occurrence.due_date)} · ${formatMoney(occurrence.paid)} of ${formatMoney(occurrence.expense.amount)} paid. Anything more goes over the bill's amount.`
+      : (Number(occurrence.paid) > 0
+          ? `Due ${shortDate(occurrence.due_date)} · ${formatMoney(occurrence.paid)} of ${formatMoney(occurrence.expense.amount)} paid. `
+          : `Due ${shortDate(occurrence.due_date)}. `) +
+        "Paying less than what's left leaves the rest due.",
     submitLabel: 'Pay',
-    amount: asTyped(occurrence.remaining),
+    amount: paidUp ? '' : asTyped(occurrence.remaining),
     notePlaceholder: occurrence.expense.name,
     mutation: pay,
     submit: (input: ExpenseInput) =>
@@ -53,10 +56,13 @@ export function PayDrawer({
         },
         {
           onSuccess: (result) => {
+            const overCents = -Math.round(Number(result.remaining) * 100)
             toast.success(
               result.status === 'partial'
                 ? `${formatMoney(input.amount)} paid · ${formatMoney(result.remaining)} of ${occurrence.expense.name} left.`
-                : `${occurrence.expense.name} paid.`,
+                : overCents > 0
+                  ? `${occurrence.expense.name} paid · ${formatMoney(overCents / 100)} over its amount.`
+                  : `${occurrence.expense.name} paid.`,
             )
             onOpenChange(false)
           },

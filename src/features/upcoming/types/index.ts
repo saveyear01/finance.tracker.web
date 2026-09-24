@@ -39,7 +39,9 @@ export type Occurrence = {
   status: OccurrenceStatus
   /** What the payments add up to, decimal string. */
   paid: string
-  /** Still owed at the bill's amount; "0.00" once paid or skipped. */
+  /** Still owed at the bill's amount. Negative once payments went past it
+   * — a paid bill still takes payments; this is the overrun. "0.00" once
+   * skipped. */
   remaining: string
   /** Oldest first. */
   payments: UpcomingPayment[]
