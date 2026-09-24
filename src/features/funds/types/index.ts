@@ -18,6 +18,8 @@ export type Fund = {
   holdings: FundHolding[]
   /** This fund's share of every income (1–100), or null if not allocated. */
   allocation_percentage: number | null
+  /** Whether Home's balance card counts it. A display setting, nothing more. */
+  in_total: boolean
   /** ISO-8601 when archived, null while active. */
   archived_at: string | null
   created_at: string
@@ -32,4 +34,10 @@ export type CreateFundInput = {
 export type UpdateFundInput = {
   id: string
   name: string
+}
+
+/** Input for `PUT /api/funds/{id}/in-total/`. */
+export type SetFundInTotalInput = {
+  id: string
+  in_total: boolean
 }

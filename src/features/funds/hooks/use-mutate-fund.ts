@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { archiveFund, createFund, restoreFund, updateFund } from '../api/funds-api'
+import { archiveFund, createFund, restoreFund, setFundInTotal, updateFund } from '../api/funds-api'
 import { fundKeys } from '../api/funds-keys'
 
 /**
@@ -35,4 +35,11 @@ export function useRestoreFund() {
   const invalidate = useFundInvalidation()
 
   return useMutation({ mutationFn: restoreFund, onSuccess: invalidate })
+}
+
+/** Home reads the funds list for its total, so invalidating funds is enough. */
+export function useSetFundInTotal() {
+  const invalidate = useFundInvalidation()
+
+  return useMutation({ mutationFn: setFundInTotal, onSuccess: invalidate })
 }

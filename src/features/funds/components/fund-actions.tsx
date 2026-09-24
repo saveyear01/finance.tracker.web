@@ -4,23 +4,27 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { getApiErrorMessage } from '@/lib/api-client'
 
-import { useRestoreFund } from '../hooks/use-mutate-fund'
+import { useRestoreFund, useSetFundInTotal } from '../hooks/use-mutate-fund'
 import { archiveBlockedReason, canArchive } from '../lib/fund-meta'
 import type { Fund } from '../types'
 
 /**
- * Per-fund menu. Unallocated gets none — it can be neither renamed nor
- * archived, and a menu of disabled items is noise. Other funds can be renamed
- * and archived — but only when empty and not in the allocation; otherwise the
- * archive item stays visible but disabled, with the reason. An archived fund
- * can only be restored.
+ * Per-fund menu. Every active fund has "Count in total" — a checkbox item
+ * that says whether Home's balance card adds this one in (in the menu, not
+ * a switch in the row: the user's call, 2026-09-24). Unallocated gets only
+ * that: it can be neither renamed nor archived, and a menu of disabled items
+ * is noise. Other funds can also be renamed and archived — but only when
+ * empty and not in the allocation; otherwise the archive item stays visible
+ * but disabled, with the reason. An archived fund can only be restored.
  */
 export function FundActions({
   fund,
@@ -32,12 +36,23 @@ export function FundActions({
   onArchive: (fund: Fund) => void
 }) {
   const restoreFund = useRestoreFund()
-
-  if (fund.is_unallocated) {
-    return null
-  }
+  const setInTotal = useSetFundInTotal()
 
   const blockedReason = archiveBlockedReason(fund)
+
+  const toggleInTotal = (checked: boolean) =>
+    setInTotal.mutate(
+      { id: fund.id, in_total: checked },
+      {
+        onSuccess: () =>
+          toast.success(
+            checked
+              ? `${fund.name} now counts in your total.`
+              : `${fund.name} left out of your total.`,
+          ),
+        onError: (error) => toast.error(getApiErrorMessage(error)),
+      },
+    )
 
   const restore = () =>
     restoreFund.mutate(fund.id, {
@@ -64,23 +79,38 @@ export function FundActions({
             </DropdownMenuItem>
           ) : (
             <>
-              <DropdownMenuItem onClick={() => onEdit(fund)}>
-                <Pencil />
-                Rename
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                variant="destructive"
-                disabled={!canArchive(fund)}
-                onClick={() => onArchive(fund)}
+              <DropdownMenuCheckboxItem
+                checked={fund.in_total}
+                onCheckedChange={toggleInTotal}
+                disabled={setInTotal.isPending}
               >
-                <Archive />
                 <span className="flex flex-col">
-                  Archive
-                  {blockedReason && (
-                    <span className="text-xs text-muted-foreground">{blockedReason}</span>
-                  )}
+                  Count in total
+                  <span className="text-xs text-muted-foreground">Home's balance card</span>
                 </span>
-              </DropdownMenuItem>
+              </DropdownMenuCheckboxItem>
+              {!fund.is_unallocated && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onEdit(fund)}>
+                    <Pencil />
+                    Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    disabled={!canArchive(fund)}
+                    onClick={() => onArchive(fund)}
+                  >
+                    <Archive />
+                    <span className="flex flex-col">
+                      Archive
+                      {blockedReason && (
+                        <span className="text-xs text-muted-foreground">{blockedReason}</span>
+                      )}
+                    </span>
+                  </DropdownMenuItem>
+                </>
+              )}
             </>
           )}
         </DropdownMenuGroup>

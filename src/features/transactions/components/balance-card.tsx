@@ -9,19 +9,33 @@ const ACTIONS: LedgerAction[] = ['income', 'expense', 'reallocation', 'transfer'
  * The balance card of the design reference: a coloured band, the total in
  * large type with the centavos dimmed, and a row of round quick actions.
  *
+ * The total is the allocations that COUNT (each has a "Count in total"
+ * setting — money set aside can be left out), so the band says how many of
+ * them it is: "4 of 6 allocations" makes a total smaller than the wallets
+ * add up to read as a choice, not a bug.
+ *
  * Drawn in theme tokens — the band in `primary`, the card in the navy
  * `secondary` — not the reference's literal orange and black.
  */
 export function BalanceCard({
   total,
-  walletCount,
+  counted,
+  allocationCount,
   onAction,
 }: {
-  /** Decimal string — the sum of the active wallets. */
+  /** Decimal string — the sum of the allocations that count. */
   total: string
-  walletCount: number
+  /** How many allocations are in it… */
+  counted: number
+  /** …out of how many active ones. */
+  allocationCount: number
   onAction: (action: LedgerAction) => void
 }) {
+  const noun = allocationCount === 1 ? 'allocation' : 'allocations'
+  const scope =
+    counted === allocationCount
+      ? `${allocationCount} ${noun}`
+      : `${counted} of ${allocationCount} ${noun}`
   const formatted = formatMoney(total)
   // Split at the decimal point so the centavos can be dimmed, as the reference
   // does ("$12,024.54"). Every currency this app formats has one.
@@ -32,7 +46,7 @@ export function BalanceCard({
   return (
     <section className="overflow-hidden rounded-xl bg-secondary text-secondary-foreground">
       <div className="bg-primary px-5 py-2 text-xs font-medium text-primary-foreground">
-        Total balance · {walletCount} {walletCount === 1 ? 'wallet' : 'wallets'}
+        Total balance · {scope}
       </div>
 
       <div className="px-5 pt-4 pb-5">

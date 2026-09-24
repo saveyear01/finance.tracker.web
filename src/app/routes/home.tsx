@@ -5,8 +5,8 @@ import { Link } from 'react-router-dom'
 import { PageIntro } from '@/components/layouts/page-intro'
 import { useCurrentUser } from '@/features/auth'
 import { ActionDrawer, BalanceCard, type LedgerAction } from '@/features/transactions'
+import { useFunds } from '@/features/funds'
 import { PinnedExpenses, UpcomingSummary } from '@/features/upcoming'
-import { useWallets } from '@/features/wallets'
 
 /**
  * Home, after the design reference: the balance card with its quick actions,
@@ -20,17 +20,20 @@ import { useWallets } from '@/features/wallets'
  * The section keeps a 12rem floor, so on a viewport too short for that the
  * shell scrolls the whole page instead of squeezing the list to nothing.
  *
- * The total is summed from the wallets list in integer cents, so it is exact
- * and always the same figure the Wallets page shows.
+ * The total is summed in integer cents from the allocations that COUNT
+ * (`in_total`, toggled from each allocation's menu — decided 2026-09-24), so
+ * money set aside can be left out of what reads as spendable. With every
+ * allocation counted it is exactly the Wallets page's figure, since both
+ * views sum the same balance rows.
  */
 export function HomeRoute() {
   const { user } = useCurrentUser()
-  const { wallets } = useWallets()
+  const { funds } = useFunds()
   // The action being recorded doubles as the drawer's open state.
   const [action, setAction] = useState<LedgerAction | null>(null)
 
-  const active = wallets.filter((wallet) => wallet.archived_at === null)
-  const cents = active.reduce((sum, wallet) => sum + Math.round(Number(wallet.balance) * 100), 0)
+  const counted = funds.filter((fund) => fund.in_total)
+  const cents = counted.reduce((sum, fund) => sum + Math.round(Number(fund.balance) * 100), 0)
 
   return (
     // `min-h-0` matters: a flex item's default minimum is its content height,
@@ -44,7 +47,8 @@ export function HomeRoute() {
       <div className="shrink-0">
         <BalanceCard
           total={(cents / 100).toFixed(2)}
-          walletCount={active.length}
+          counted={counted.length}
+          allocationCount={funds.length}
           onAction={setAction}
         />
       </div>

@@ -69,6 +69,7 @@ export function FundsTable({ funds, onEdit, onArchive }: Props) {
                       {fund.name}
                     </CollapsibleTrigger>
                     {archived && <Badge variant="secondary">Archived</Badge>}
+                    {!fund.in_total && !archived && <Badge variant="outline">Not in total</Badge>}
                   </span>
                   {fund.allocation_percentage !== null && (
                     <span className="text-xs text-muted-foreground">

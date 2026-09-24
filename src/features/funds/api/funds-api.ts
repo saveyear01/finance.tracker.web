@@ -1,6 +1,6 @@
 import { apiClient, unwrap } from '@/lib/api-client'
 
-import type { CreateFundInput, Fund, UpdateFundInput } from '../types'
+import type { CreateFundInput, Fund, SetFundInTotalInput, UpdateFundInput } from '../types'
 
 /**
  * `GET /api/funds/` — the caller's funds, Unallocated first, each with its
@@ -22,6 +22,12 @@ export function createFund(input: CreateFundInput): Promise<Fund> {
 /** `PUT /api/funds/{id}/` — rename. Refused for Unallocated. */
 export function updateFund({ id, ...input }: UpdateFundInput): Promise<Fund> {
   return unwrap(apiClient.put<Fund>(`/funds/${id}/`, input))
+}
+
+/** `PUT /api/funds/{id}/in-total/` — count the fund in Home's total, or
+ * leave it out. Works on Unallocated too. */
+export function setFundInTotal({ id, in_total }: SetFundInTotalInput): Promise<Fund> {
+  return unwrap(apiClient.put<Fund>(`/funds/${id}/in-total/`, { in_total }))
 }
 
 /**

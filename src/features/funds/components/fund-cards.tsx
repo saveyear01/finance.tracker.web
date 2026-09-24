@@ -61,6 +61,10 @@ export function FundCards({ funds, onEdit, onArchive }: Props) {
                     <span className="flex items-center gap-2 text-sm text-muted-foreground">
                       {holdingsSummary(fund)}
                       {archived && <Badge variant="secondary">Archived</Badge>}
+                      {/* Says why Home's total is less than these cards add up to. */}
+                      {!fund.in_total && !archived && (
+                        <Badge variant="outline">Not in total</Badge>
+                      )}
                     </span>
                   </span>
                 </span>
