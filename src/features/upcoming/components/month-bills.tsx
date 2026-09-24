@@ -24,6 +24,11 @@ import { UpcomingRow } from './upcoming-row'
  * The current month also carries overdue bills from before it
  * (`carryOverdue`), at the top.
  *
+ * Paid due dates sit in a section of their own under the rest (decided
+ * 2026-09-24): what still needs doing reads as one list, and what's done
+ * doesn't pad it out. Skipped ones stay up top — they aren't paid, and
+ * their undo lives with the bills of the month.
+ *
  * Rows are links: paying, skipping, editing and deleting all live on the due
  * date's own page, so nothing here needs handlers for them.
  */
@@ -89,6 +94,8 @@ export function MonthBills({
   }
 
   const { toPayCents, paidCents, unpaid, overdue } = summarize(occurrences, today)
+  const paid = occurrences.filter((occurrence) => occurrence.status === 'paid')
+  const open = occurrences.filter((occurrence) => occurrence.status !== 'paid')
 
   return (
     <div className="space-y-3">
@@ -115,15 +122,36 @@ export function MonthBills({
       )}
 
       {add}
-      <ul className="space-y-2">
-        {occurrences.map((occurrence) => (
-          <UpcomingRow
-            key={`${occurrence.expense.id}:${occurrence.due_date}`}
-            occurrence={occurrence}
-            today={today}
-          />
-        ))}
-      </ul>
+      {open.length > 0 ? (
+        <ul className="space-y-2">
+          {open.map((occurrence) => (
+            <UpcomingRow
+              key={`${occurrence.expense.id}:${occurrence.due_date}`}
+              occurrence={occurrence}
+              today={today}
+            />
+          ))}
+        </ul>
+      ) : (
+        <p className="py-2 text-center text-sm text-muted-foreground">
+          Everything here is paid.
+        </p>
+      )}
+
+      {paid.length > 0 && (
+        <section className="space-y-2 pt-2">
+          <h2 className="font-semibold">Paid · {paid.length}</h2>
+          <ul className="space-y-2">
+            {paid.map((occurrence) => (
+              <UpcomingRow
+                key={`${occurrence.expense.id}:${occurrence.due_date}`}
+                occurrence={occurrence}
+                today={today}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   )
 }
