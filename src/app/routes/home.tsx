@@ -4,21 +4,19 @@ import { Link } from 'react-router-dom'
 
 import { PageIntro } from '@/components/layouts/page-intro'
 import { useCurrentUser } from '@/features/auth'
-import {
-  ActionDrawer,
-  BalanceCard,
-  RecentActivity,
-  type LedgerAction,
-} from '@/features/transactions'
-import { UpcomingSummary } from '@/features/upcoming'
+import { ActionDrawer, BalanceCard, type LedgerAction } from '@/features/transactions'
+import { PinnedExpenses, UpcomingSummary } from '@/features/upcoming'
 import { useWallets } from '@/features/wallets'
 
 /**
  * Home, after the design reference: the balance card with its quick actions,
- * the upcoming expenses still to pay this month, then Recent Activity.
+ * the upcoming expenses still to pay this month, then the pinned expenses —
+ * the bills pinned for quick access, each as the due date to pay next. (It
+ * replaced Recent activity on 2026-09-24: the activity has its own page, and
+ * what Home is for is getting to the next thing to pay.)
  *
  * Laid out as a screen, not a document (it is in `SCREEN_PAGES`): the card
- * stays put and only the activity list scrolls, in whatever height is left.
+ * stays put and only the pinned list scrolls, in whatever height is left.
  * The section keeps a 12rem floor, so on a viewport too short for that the
  * shell scrolls the whole page instead of squeezing the list to nothing.
  *
@@ -58,9 +56,9 @@ export function HomeRoute() {
 
       <section className="flex min-h-48 flex-1 flex-col gap-3">
         <div className="flex shrink-0 items-center justify-between">
-          <h2 className="font-semibold">Recent activity</h2>
+          <h2 className="font-semibold">Pinned expenses</h2>
           <Link
-            to="/transactions"
+            to="/upcoming"
             className="flex items-center gap-0.5 text-sm font-medium text-primary hover:underline"
           >
             See all
@@ -68,10 +66,9 @@ export function HomeRoute() {
           </Link>
         </div>
         {/* The only part of Home that scrolls. `overscroll-contain` stops a
-            flick at the list's end from scrolling anything behind it. The
-            latest 10; the Transactions page has the rest. */}
+            flick at the list's end from scrolling anything behind it. */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <RecentActivity limit={10} />
+          <PinnedExpenses />
         </div>
       </section>
 

@@ -5,6 +5,7 @@ import {
   CircleCheck,
   CircleSlash,
   PieChart,
+  Pin,
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -88,7 +89,13 @@ export function UpcomingRow({
         </span>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{expense.name}</p>
+          <p className="flex items-center gap-1.5 font-medium">
+            <span className="truncate">{expense.name}</span>
+            {/* A pinned bill is also on Home; say so where it's listed. */}
+            {expense.pinned_at !== null && (
+              <Pin className="size-3.5 shrink-0 text-muted-foreground" aria-label="Pinned" />
+            )}
+          </p>
           <p className="truncate text-xs text-muted-foreground">
             <span
               className={cn(

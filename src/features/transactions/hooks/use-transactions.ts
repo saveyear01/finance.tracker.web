@@ -22,16 +22,6 @@ import {
 import { transactionKeys } from '../api/transactions-keys'
 import type { EditableAction } from '../types'
 
-/** The latest few entries — Home's Recent Activity. */
-export function useRecentTransactions(limit = 10) {
-  const query = useQuery({
-    queryKey: transactionKeys.recent(limit),
-    queryFn: () => listTransactions({ limit }),
-  })
-
-  return { ...query, transactions: query.data?.items ?? [] }
-}
-
 /**
  * Every entry, a page at a time — the Transactions page's infinite scroll.
  * Each page's `next_cursor` is the next page's param; a null cursor ends it.

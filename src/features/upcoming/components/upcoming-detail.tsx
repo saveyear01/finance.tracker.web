@@ -1,4 +1,12 @@
-import { CalendarCheck, CircleSlash, Pencil, Trash2, Undo2, Wallet } from 'lucide-react'
+import {
+  CalendarCheck,
+  CircleSlash,
+  Pencil,
+  Pin,
+  Trash2,
+  Undo2,
+  Wallet,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import { EmptyState } from '@/components/layouts/empty-state'
@@ -10,7 +18,13 @@ import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
-import { useOccurrence, useSkipUpcoming, useUndoSkip } from '../hooks/use-upcoming'
+import {
+  useOccurrence,
+  usePinUpcoming,
+  useSkipUpcoming,
+  useUndoSkip,
+  useUnpinUpcoming,
+} from '../hooks/use-upcoming'
 import { RECURRENCE_LABELS, shortDate, statusOf, type RowStatus } from '../lib/upcoming-meta'
 import type { Occurrence, UpcomingExpense } from '../types'
 
@@ -77,8 +91,10 @@ function tileParts(isoDate: string): { month: string; day: string } {
  * actually looks like, and nothing like the debts page's plain rows.
  *
  * Skip is offered only on an overdue date (a bill still to come is paid or
- * left alone) and turns into Undo once skipped. Delete sits apart at the
- * bottom: it removes the whole bill, not this one date.
+ * left alone) and turns into Undo once skipped. The pin sits in the header
+ * beside the name, filled while the bill is on Home: it pins the whole bill
+ * — as whichever due date is next to pay, not this one. Delete sits apart at the bottom: it removes the whole
+ * bill, not this one date.
  */
 export function UpcomingDetail({
   id,
@@ -96,6 +112,8 @@ export function UpcomingDetail({
   const { occurrence, isLoading, isError, error } = useOccurrence(id, dueDate)
   const skip = useSkipUpcoming()
   const undo = useUndoSkip()
+  const pin = usePinUpcoming()
+  const unpin = useUnpinUpcoming()
   const today = localToday()
 
   if (isLoading) {
@@ -147,6 +165,18 @@ export function UpcomingDetail({
       },
     )
 
+  // The pin is the bill's, not this date's: the same either way, and the
+  // toast says where it went rather than leaving the tap silent.
+  const isPinned = expense.pinned_at !== null
+  const togglePin = () =>
+    (isPinned ? unpin : pin).mutate(expense.id, {
+      onSuccess: () =>
+        toast.success(
+          isPinned ? `${expense.name} unpinned from Home.` : `${expense.name} pinned to Home.`,
+        ),
+      onError: (err) => toast.error(getApiErrorMessage(err)),
+    })
+
   return (
     <div className="space-y-4">
       {/* The date leads — what an upcoming expense IS, is a day it falls due
@@ -182,6 +212,29 @@ export function UpcomingDetail({
               {STATUS_LABEL[status]}
             </span>
           </div>
+          {/* The pin lives with the bill's name, where its state is read at a
+              glance: filled and blue while pinned to Home, hollow when not.
+              It pins the whole bill, not this date. */}
+          <button
+            type="button"
+            onClick={togglePin}
+            disabled={pin.isPending || unpin.isPending}
+            aria-pressed={isPinned}
+            aria-label={isPinned ? 'Unpin from Home' : 'Pin to Home'}
+            title={isPinned ? 'Pinned to Home' : 'Pin to Home'}
+            className={cn(
+              'grid size-10 shrink-0 place-items-center rounded-full transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50',
+              isPinned
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+          >
+            {isPinned ? (
+              <Pin className="size-4 fill-current" aria-hidden="true" />
+            ) : (
+              <Pin className="size-4" aria-hidden="true" />
+            )}
+          </button>
         </div>
 
         <div className="border-t border-border px-4 py-4">

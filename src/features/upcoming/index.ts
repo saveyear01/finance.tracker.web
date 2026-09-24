@@ -8,6 +8,7 @@
  */
 export { DeleteUpcomingDrawer } from './components/delete-upcoming-drawer'
 export { PayDrawer } from './components/pay-drawer'
+export { PinnedExpenses } from './components/pinned-expenses'
 export { UpcomingDetail } from './components/upcoming-detail'
 export { UpcomingDrawer } from './components/upcoming-drawer'
 export { UpcomingSummary } from './components/upcoming-summary'

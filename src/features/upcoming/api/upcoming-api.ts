@@ -56,6 +56,25 @@ export function getOccurrence({
   return unwrap(apiClient.get<Occurrence>(`/upcoming-expenses/${id}/occurrences/${dueDate}/`))
 }
 
+/**
+ * `GET /upcoming-expenses/pinned/` — every pinned bill as the due date to act
+ * on next (the earliest still owed; a one-off's only date whatever became of
+ * it), soonest first. Home's quick-access list.
+ */
+export function listPinned(): Promise<Occurrence[]> {
+  return unwrap(apiClient.get<Occurrence[]>('/upcoming-expenses/pinned/'))
+}
+
+/** Pin a bill to Home. Already pinned: nothing changes. */
+export function pinUpcoming(id: string): Promise<UpcomingExpense> {
+  return unwrap(apiClient.put<UpcomingExpense>(`/upcoming-expenses/${id}/pin/`))
+}
+
+/** Take a bill off Home. Not pinned: nothing changes. */
+export function unpinUpcoming(id: string): Promise<UpcomingExpense> {
+  return unwrap(apiClient.delete<UpcomingExpense>(`/upcoming-expenses/${id}/pin/`))
+}
+
 export function createUpcoming(input: UpcomingExpenseInput): Promise<UpcomingExpense> {
   return unwrap(apiClient.post<UpcomingExpense>('/upcoming-expenses/', input))
 }
