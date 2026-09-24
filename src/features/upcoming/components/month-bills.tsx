@@ -24,10 +24,10 @@ import { UpcomingRow } from './upcoming-row'
  * The current month also carries overdue bills from before it
  * (`carryOverdue`), at the top.
  *
- * Paid due dates sit in a section of their own under the rest (decided
- * 2026-09-24): what still needs doing reads as one list, and what's done
- * doesn't pad it out. Skipped ones stay up top — they aren't paid, and
- * their undo lives with the bills of the month.
+ * Paid due dates sit in a section of their own under the rest, and skipped
+ * ones in another below that (decided 2026-09-24): what still needs doing
+ * reads as one list, and what's done — or waved off — doesn't pad it out.
+ * A skip made this month stays here with its undo on the bill's page.
  *
  * Rows are links: paying, skipping, editing and deleting all live on the due
  * date's own page, so nothing here needs handlers for them.
@@ -95,7 +95,10 @@ export function MonthBills({
 
   const { toPayCents, paidCents, unpaid, overdue } = summarize(occurrences, today)
   const paid = occurrences.filter((occurrence) => occurrence.status === 'paid')
-  const open = occurrences.filter((occurrence) => occurrence.status !== 'paid')
+  const skipped = occurrences.filter((occurrence) => occurrence.status === 'skipped')
+  const open = occurrences.filter(
+    (occurrence) => occurrence.status !== 'paid' && occurrence.status !== 'skipped',
+  )
 
   return (
     <div className="space-y-3">
@@ -134,7 +137,7 @@ export function MonthBills({
         </ul>
       ) : (
         <p className="py-2 text-center text-sm text-muted-foreground">
-          Everything here is paid.
+          {paid.length > 0 ? 'Everything here is paid.' : 'Nothing left to pay here.'}
         </p>
       )}
 
@@ -143,6 +146,21 @@ export function MonthBills({
           <h2 className="font-semibold">Paid · {paid.length}</h2>
           <ul className="space-y-2">
             {paid.map((occurrence) => (
+              <UpcomingRow
+                key={`${occurrence.expense.id}:${occurrence.due_date}`}
+                occurrence={occurrence}
+                today={today}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {skipped.length > 0 && (
+        <section className="space-y-2 pt-2">
+          <h2 className="font-semibold">Skipped · {skipped.length}</h2>
+          <ul className="space-y-2">
+            {skipped.map((occurrence) => (
               <UpcomingRow
                 key={`${occurrence.expense.id}:${occurrence.due_date}`}
                 occurrence={occurrence}

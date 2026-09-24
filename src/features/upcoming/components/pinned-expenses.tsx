@@ -22,11 +22,6 @@ import { UpcomingRow } from './upcoming-row'
  * Upcoming, and each opens that due date's own page, where Pay is one tap
  * away. A list stays a list: no buttons in the rows.
  *
- * Skipped due dates go in a section of their own at the bottom (decided
- * 2026-09-24): they aren't owed, so they shouldn't sit among what is — but
- * a skip made this month stays in view with its undo, as on the Upcoming
- * page's current-month tab.
- *
  * Pinning happens on the bill's page; this list only shows the result, and
  * says where to go when nothing is pinned yet.
  */
@@ -58,43 +53,15 @@ export function PinnedExpenses() {
     )
   }
 
-  const skipped = occurrences.filter((occurrence) => occurrence.status === 'skipped')
-  const rest = occurrences.filter((occurrence) => occurrence.status !== 'skipped')
-
   return (
-    <div className="space-y-2">
-      {rest.length > 0 ? (
-        <ul className="space-y-2">
-          {rest.map((occurrence) => (
-            <UpcomingRow
-              key={`${occurrence.expense.id}:${occurrence.due_date}`}
-              occurrence={occurrence}
-              today={today}
-            />
-          ))}
-        </ul>
-      ) : (
-        <p className="py-2 text-center text-sm text-muted-foreground">
-          Everything pinned this month is skipped.
-        </p>
-      )}
-
-      {skipped.length > 0 && (
-        <section className="space-y-2 pt-2">
-          <h3 className="text-sm font-semibold text-muted-foreground">
-            Skipped · {skipped.length}
-          </h3>
-          <ul className="space-y-2">
-            {skipped.map((occurrence) => (
-              <UpcomingRow
-                key={`${occurrence.expense.id}:${occurrence.due_date}`}
-                occurrence={occurrence}
-                today={today}
-              />
-            ))}
-          </ul>
-        </section>
-      )}
-    </div>
+    <ul className="space-y-2">
+      {occurrences.map((occurrence) => (
+        <UpcomingRow
+          key={`${occurrence.expense.id}:${occurrence.due_date}`}
+          occurrence={occurrence}
+          today={today}
+        />
+      ))}
+    </ul>
   )
 }
