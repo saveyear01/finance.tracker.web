@@ -84,7 +84,12 @@ export function FundsTable({ funds, onEdit, onArchive }: Props) {
                     : fund.holdings.map((holding) => holding.wallet_name).join(', ')}
                 </TableCell>
 
-                <TableCell className="text-right font-medium tabular-nums">
+                <TableCell
+                  className={cn(
+                    'text-right font-medium tabular-nums',
+                    Number(fund.balance) < 0 && 'text-destructive',
+                  )}
+                >
                   {formatMoney(fund.balance)}
                 </TableCell>
 

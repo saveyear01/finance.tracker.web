@@ -19,7 +19,8 @@ export const actionFormSchema = z.object({
   date: z.string().min(1, 'Choose a date.'),
   /**
    * Cents available at the source, or null when the action takes nothing out
-   * (income). Filled in by the drawer from the cached fund holdings.
+   * (income). Filled in by the drawer from the cached fund holdings. A limit
+   * for moves and transfers only — an expense may go past it.
    */
   available_cents: z.number().nullable(),
 })
@@ -49,7 +50,14 @@ export const actionSchema = actionFormSchema.superRefine((values, ctx) => {
   const cents = Math.round(Number(values.amount || '0') * 100)
   if (cents <= 0) {
     ctx.addIssue({ ...required('Enter an amount.'), path: ['amount'] })
-  } else if (values.available_cents !== null && cents > values.available_cents) {
+  } else if (
+    // An expense may spend more than the allocation holds — it goes negative,
+    // borrowed against until income brings it back (decided 2026-10-05).
+    // Money that isn't there still can't be moved or transferred.
+    action !== 'expense' &&
+    values.available_cents !== null &&
+    cents > values.available_cents
+  ) {
     ctx.addIssue({ ...required("That's more than is available."), path: ['amount'] })
   }
 })

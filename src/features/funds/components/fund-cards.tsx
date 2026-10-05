@@ -68,7 +68,13 @@ export function FundCards({ funds, onEdit, onArchive }: Props) {
                     </span>
                   </span>
                 </span>
-                <span className="text-xl font-semibold tabular-nums">
+                {/* Below zero: spent past what it held — borrowed against. */}
+                <span
+                  className={cn(
+                    'text-xl font-semibold tabular-nums',
+                    Number(fund.balance) < 0 && 'text-destructive',
+                  )}
+                >
                   {formatMoney(fund.balance)}
                 </span>
               </CollapsibleTrigger>

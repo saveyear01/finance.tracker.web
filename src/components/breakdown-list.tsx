@@ -1,4 +1,5 @@
 import { formatMoney } from '@/lib/money'
+import { cn } from '@/lib/utils'
 
 export type BreakdownItem = {
   id: string
@@ -35,6 +36,10 @@ function wholePercents(cents: number[], totalCents: number): number[] {
  * Shares are worked out in integer cents; the bars are drawn from the exact
  * ratio, the labels from `wholePercents`. A real share that rounds to 0%
  * reads "<1%" rather than claiming to be nothing.
+ *
+ * A part can be NEGATIVE — an allocation spent past what it held, borrowed
+ * against. It has no share of anything: it shows its amount in red with no
+ * bar, and the shares are of what is actually there (the positive parts).
  */
 export function BreakdownList({
   items,
@@ -45,34 +50,42 @@ export function BreakdownList({
   /** What to say when there are no parts. */
   empty: string
 }) {
-  const totalCents = items.reduce((sum, item) => sum + centsOf(item.amount), 0)
+  const cents = items.map((item) => centsOf(item.amount))
+  // Shares are of the money that's there: negatives count as nothing held.
+  const held = cents.map((c) => Math.max(c, 0))
+  const totalCents = held.reduce((sum, c) => sum + c, 0)
 
-  if (items.length === 0 || totalCents === 0) {
+  if (items.length === 0 || cents.every((c) => c === 0)) {
     return <p className="text-sm text-muted-foreground">{empty}</p>
   }
 
-  const cents = items.map((item) => centsOf(item.amount))
-  const percents = wholePercents(cents, totalCents)
+  const percents = totalCents > 0 ? wholePercents(held, totalCents) : held.map(() => 0)
 
   return (
     <ul className="space-y-3">
       {items.map((item, index) => {
         const share = percents[index]
+        const borrowed = cents[index] < 0
         return (
           <li key={item.id} className="space-y-1.5">
             <div className="flex items-baseline justify-between gap-3 text-sm">
               <span className="truncate">{item.label}</span>
-              <span className="flex shrink-0 items-baseline gap-2 tabular-nums">
+              <span
+                className={cn(
+                  'flex shrink-0 items-baseline gap-2 tabular-nums',
+                  borrowed && 'text-destructive',
+                )}
+              >
                 {formatMoney(item.amount)}
                 <span className="w-9 text-right text-xs text-muted-foreground">
-                  {share === 0 && cents[index] > 0 ? '<1%' : `${share}%`}
+                  {borrowed ? '—' : share === 0 && cents[index] > 0 ? '<1%' : `${share}%`}
                 </span>
               </span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
               <div
                 className="h-full rounded-full bg-primary"
-                style={{ width: `${(cents[index] / totalCents) * 100}%` }}
+                style={{ width: totalCents > 0 ? `${(held[index] / totalCents) * 100}%` : 0 }}
               />
             </div>
           </li>

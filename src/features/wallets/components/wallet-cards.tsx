@@ -65,7 +65,12 @@ export function WalletCards({ wallets, onEdit, onArchive }: Props) {
                     </span>
                   </span>
                 </span>
-                <span className="text-xl font-semibold tabular-nums">
+                <span
+                  className={cn(
+                    'text-xl font-semibold tabular-nums',
+                    Number(wallet.balance) < 0 && 'text-destructive',
+                  )}
+                >
                   {formatMoney(wallet.balance)}
                 </span>
               </CollapsibleTrigger>

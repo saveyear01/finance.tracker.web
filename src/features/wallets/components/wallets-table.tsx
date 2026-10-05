@@ -82,7 +82,12 @@ export function WalletsTable({ wallets, onEdit, onArchive }: Props) {
                   </span>
                 </TableCell>
 
-                <TableCell className="text-right font-medium tabular-nums">
+                <TableCell
+                  className={cn(
+                    'text-right font-medium tabular-nums',
+                    Number(wallet.balance) < 0 && 'text-destructive',
+                  )}
+                >
                   {formatMoney(wallet.balance)}
                 </TableCell>
 

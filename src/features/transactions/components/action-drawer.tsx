@@ -156,9 +156,12 @@ export type ExpenseVia = {
  * keypad, the note and the date, and differ only in which wallets and funds
  * they touch.
  *
- * Sources only offer what can actually be spent: the funds a wallet holds,
- * with how much. The amount is checked against that before submitting; the
- * API checks again and is the authority.
+ * A move or a transfer only offers what can actually be moved: the funds a
+ * wallet holds, with how much, and the amount is checked against that before
+ * submitting (the API checks again and is the authority). An EXPENSE offers
+ * every allocation and may spend past what's there (decided 2026-10-05):
+ * the allocation goes negative — borrowed against — and the line under the
+ * amount says where it will be left, so it's a choice rather than a surprise.
  *
  * With `editing`, the same drawer edits an existing action in place: it
  * opens filled in, saves to the action's own edit endpoint, and reckons
@@ -315,7 +318,7 @@ export function ActionDrawer({
     setValue('available_cents', available)
   }, [available, setValue])
 
-  // Funds this wallet actually holds — the only sensible sources.
+  // Funds this wallet actually holds — the only sensible sources of a move.
   const heldIn = (wallet: string): PickerOption[] =>
     pickable.funds
       .filter((fund) => (heldCents.get(`${wallet}:${fund.id}`) ?? 0) > 0)
@@ -324,6 +327,22 @@ export function ActionDrawer({
         label: fund.name,
         detail: formatMoney((heldCents.get(`${wallet}:${fund.id}`) ?? 0) / 100),
       }))
+  // An expense can come out of ANY allocation, held here or not — spending
+  // what isn't there borrows against it. Each still says what it holds in
+  // this wallet, negative included.
+  const spendableIn = (wallet: string): PickerOption[] =>
+    pickable.funds.map((fund) => ({
+      value: fund.id,
+      label: fund.name,
+      detail: formatMoney((heldCents.get(`${wallet}:${fund.id}`) ?? 0) / 100),
+    }))
+  // What an expense of the typed amount leaves the allocation at, when that
+  // is below zero — null otherwise.
+  const amountCents = Math.round(Number(amount || '0') * 100)
+  const leftCents =
+    action === 'expense' && available !== null && amountCents > 0 && amountCents > available
+      ? available - amountCents
+      : null
 
   const walletOptions: PickerOption[] = pickable.wallets.map((w) => ({ value: w.id, label: w.name }))
   const allFundOptions: PickerOption[] = pickable.funds.map((f) => ({ value: f.id, label: f.name }))
@@ -484,7 +503,13 @@ export function ActionDrawer({
                       name="fund_id"
                       label={action === 'reallocation' ? 'From allocation' : 'Allocation'}
                       placeholder={walletId ? 'Choose an allocation' : 'Choose a wallet first'}
-                      options={walletId ? heldIn(walletId) : []}
+                      options={
+                        !walletId
+                          ? []
+                          : action === 'expense'
+                            ? spendableIn(walletId)
+                            : heldIn(walletId)
+                      }
                       error={errors.fund_id}
                     />
                   )}
@@ -552,9 +577,15 @@ export function ActionDrawer({
                       invalid={Boolean(errors.amount)}
                       hint={
                         errors.amount?.message ??
-                        (available !== null
-                          ? `Available: ${formatMoney(available / 100)}`
-                          : undefined)
+                        (leftCents !== null ? (
+                          // Not an error — spending past what's there is
+                          // allowed — but said in red, before it's saved.
+                          <span className="text-destructive">
+                            More than is there · leaves it at {formatMoney(leftCents / 100)}
+                          </span>
+                        ) : available !== null ? (
+                          `Available: ${formatMoney(available / 100)}`
+                        ) : undefined)
                       }
                     />
                   )}

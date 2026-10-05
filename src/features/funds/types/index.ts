@@ -2,7 +2,8 @@
 export type FundHolding = {
   wallet_id: string
   wallet_name: string
-  /** Decimal string. Never zero: empty holdings are left out by the API. */
+  /** Decimal string. Never zero: empty holdings are left out by the API.
+   * Negative when expenses took it past what it held — borrowed against. */
   balance: string
 }
 
