@@ -70,7 +70,7 @@ export const SUB_PAGES: SubPage[] = [
   { path: '/debts/:debtId', title: 'Debt', back: '/debts' },
   // One due date of one bill.
   { path: '/upcoming/:expenseId/:dueDate', title: 'Upcoming expense', back: '/upcoming' },
-  // One note's spending; the note and the range are in the query.
+  // One note's expenses or income; the tab, note and range are in the query.
   { path: '/analytics/note', title: 'Analytics', back: '/analytics' },
 ]
 

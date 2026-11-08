@@ -9,34 +9,36 @@ import {
 import { formatMoney } from '@/lib/money'
 
 import { bucketsOf } from '../lib/buckets'
-import type { DaySpending } from '../types'
+import type { DayTotal, Kind } from '../types'
 
-const config = {
-  spent: { label: 'Spent', color: 'var(--primary)' },
-} satisfies ChartConfig
+// Expenses in the primary blue; income in the app's green for money in.
+const configs = {
+  expense: { total: { label: 'Spent', color: 'var(--primary)' } },
+  income: { total: { label: 'Received', color: 'var(--success)' } },
+} satisfies Record<Kind, ChartConfig>
 
 /** "₱1.2K" — the axis is for scale; exact figures are in the tooltip. */
 const compact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 })
 
 /**
- * What one note cost per day (or per month) across the window — one series,
+ * What one note came to per day (or per month) across the window — one series,
  * so no legend: the page's heading names it.
  *
  * Every day of the window is a slot, zero days included, so a gap reads as
- * "nothing spent", not as missing data. Bars are capped at 24px and rounded
+ * "nothing that day", not as missing data. Bars are capped at 24px and rounded
  * only at the top, growing from one baseline; the grid is horizontal and
  * faint. Hovering or tapping a bar shows that day exactly; the entries under
  * the chart are the same figures as a list, for anyone not using a pointer.
  */
-export function DailyChart({ days }: { days: DaySpending[] }) {
+export function DailyChart({ kind, days }: { kind: Kind; days: DayTotal[] }) {
   const { buckets, monthly } = bucketsOf(days)
 
   return (
     <ChartContainer
-      config={config}
+      config={configs[kind]}
       className="aspect-auto h-52 w-full"
       role="img"
-      aria-label={`Spending per ${monthly ? 'month' : 'day'}`}
+      aria-label={`${kind === 'income' ? 'Income' : 'Spending'} per ${monthly ? 'month' : 'day'}`}
     >
       <BarChart data={buckets} margin={{ top: 8, right: 0, bottom: 0, left: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -68,7 +70,7 @@ export function DailyChart({ days }: { days: DaySpending[] }) {
             />
           }
         />
-        <Bar dataKey="spent" fill="var(--color-spent)" radius={[4, 4, 0, 0]} maxBarSize={24} />
+        <Bar dataKey="total" fill="var(--color-total)" radius={[4, 4, 0, 0]} maxBarSize={24} />
       </BarChart>
     </ChartContainer>
   )

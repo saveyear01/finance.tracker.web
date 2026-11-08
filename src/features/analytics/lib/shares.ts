@@ -1,6 +1,6 @@
 import { wholePercents } from '@/lib/percents'
 
-import type { NoteSpending } from '../types'
+import type { NoteTotal } from '../types'
 
 /**
  * How many notes get a slice of their own. The pie's palette is seven hues
@@ -13,7 +13,7 @@ export const PIE_SLOTS = 7
 const OTHERS_COLOR = 'var(--series-other)'
 
 /** One note as both views show it: its share, and the colour it wears. */
-export type Share = NoteSpending & {
+export type Share = NoteTotal & {
   cents: number
   /** Whole percent; the window's add up to exactly 100. */
   percent: number
@@ -24,14 +24,14 @@ export type Share = NoteSpending & {
 export type Slice = { key: string; label: string; cents: number; percent: number; color: string }
 
 /**
- * The window's notes with their shares and colours, most spent first.
+ * The window's notes with their shares and colours, biggest first.
  *
  * The seven biggest NOTED groups get a hue each, in the palette's fixed
- * order. The expenses with no note — "Others" — and any notes past the
+ * order. The entries with no note — "Others" — and any notes past the
  * seventh share the grey: they are the one "Others" slice of the pie.
  */
-export function sharesOf(notes: NoteSpending[]): Share[] {
-  const cents = notes.map((group) => Math.round(Number(group.spent) * 100))
+export function sharesOf(notes: NoteTotal[]): Share[] {
+  const cents = notes.map((group) => Math.round(Number(group.total) * 100))
   const total = cents.reduce((sum, c) => sum + c, 0)
   const percents = total > 0 ? wholePercents(cents, total) : cents.map(() => 0)
 

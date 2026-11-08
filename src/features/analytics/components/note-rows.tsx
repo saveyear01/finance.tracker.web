@@ -4,8 +4,10 @@ import { Link, useLocation } from 'react-router-dom'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
-import { noteLabel, notePath, type SpendingRange } from '../lib/ranges'
+import { countOf } from '../lib/kinds'
+import { noteLabel, notePath, type AnalyticsRange } from '../lib/ranges'
 import type { Share } from '../lib/shares'
+import type { Kind } from '../types'
 
 const percentLabel = (share: Share) =>
   share.percent === 0 && share.cents > 0 ? '<1%' : `${share.percent}%`
@@ -21,12 +23,14 @@ const percentLabel = (share: Share) =>
  * the "Others" slice.
  */
 export function NoteRows({
+  kind,
   shares,
   range,
   variant,
 }: {
+  kind: Kind
   shares: Share[]
-  range: SpendingRange
+  range: AnalyticsRange
   variant: 'list' | 'legend'
 }) {
   const { pathname, search } = useLocation()
@@ -37,7 +41,7 @@ export function NoteRows({
       {shares.map((share) => (
         <li key={share.note ?? ''}>
           <Link
-            to={notePath(share.note, range)}
+            to={notePath(kind, share.note, range)}
             state={{ from: `${pathname}${search}` }}
             className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-card-foreground transition-colors outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
           >
@@ -54,7 +58,7 @@ export function NoteRows({
                   {noteLabel(share.note)}
                 </p>
                 <span className="shrink-0 font-semibold tabular-nums">
-                  {formatMoney(share.spent)}
+                  {formatMoney(share.total)}
                 </span>
               </div>
               {variant === 'list' && (
@@ -66,9 +70,7 @@ export function NoteRows({
                 </div>
               )}
               <p className="mt-1 flex justify-between text-xs text-muted-foreground">
-                <span>
-                  {share.count} {share.count === 1 ? 'expense' : 'expenses'}
-                </span>
+                <span>{countOf(kind, share.count)}</span>
                 <span className="tabular-nums">{percentLabel(share)}</span>
               </p>
             </div>

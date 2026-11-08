@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 
-import type { DateWindow } from '../types'
+import type { DateWindow, Kind } from '../types'
 
 export const PRESETS = ['this-month', 'last-month', 'last-30', 'this-year', 'custom'] as const
 export type RangePreset = (typeof PRESETS)[number]
@@ -16,7 +16,7 @@ export const PRESET_LABELS: Record<RangePreset, string> = {
 /** The longest window the API reads — a year, leap day included. */
 export const MAX_WINDOW_DAYS = 366
 
-export type SpendingRange = { preset: RangePreset; window: DateWindow }
+export type AnalyticsRange = { preset: RangePreset; window: DateWindow }
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const iso = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
@@ -58,7 +58,7 @@ export function windowOf(preset: Exclude<RangePreset, 'custom'>, now = new Date(
  * preset, this month otherwise. Lives in the URL so opening a note and
  * coming back lands on the same range, and a reload keeps it.
  */
-export function rangeFromParams(params: URLSearchParams): SpendingRange {
+export function rangeFromParams(params: URLSearchParams): AnalyticsRange {
   const from = params.get('from') ?? ''
   const to = params.get('to') ?? ''
   if (ISO_DATE.test(from) && ISO_DATE.test(to) && from <= to) {
@@ -71,7 +71,7 @@ export function rangeFromParams(params: URLSearchParams): SpendingRange {
 }
 
 /** The search params that hold a range — what `rangeFromParams` reads. */
-export function rangeParams({ preset, window }: SpendingRange): Record<string, string> {
+export function rangeParams({ preset, window }: AnalyticsRange): Record<string, string> {
   if (preset === 'custom') return { from: window.start, to: window.end }
   return preset === 'this-month' ? {} : { range: preset }
 }
@@ -90,17 +90,21 @@ export function formatWindow({ start, end }: DateWindow): string {
   return `${format(from, 'MMM d')} – ${format(to, 'd, yyyy')}`
 }
 
-/** What a group is called — the note, or "Others" for expenses without one. */
+/** What a group is called — the note, or "Others" for entries without one. */
 export function noteLabel(note: string | null): string {
   return note ?? 'Others'
 }
 
 /**
- * The link to one note's page, carrying the range along. No `note` param is
- * the no-note group.
+ * The link to one note's page, carrying the tab and the range along. No
+ * `note` param is the no-note group.
  */
-export function notePath(note: string | null, range: SpendingRange): string {
-  const params = new URLSearchParams({ ...(note !== null && { note }), ...rangeParams(range) })
+export function notePath(kind: Kind, note: string | null, range: AnalyticsRange): string {
+  const params = new URLSearchParams({
+    ...(kind === 'income' && { tab: kind }),
+    ...(note !== null && { note }),
+    ...rangeParams(range),
+  })
   const query = params.toString()
   return `/analytics/note${query ? `?${query}` : ''}`
 }

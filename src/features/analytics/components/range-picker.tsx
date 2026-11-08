@@ -12,7 +12,7 @@ import {
   PRESETS,
   windowOf,
   type RangePreset,
-  type SpendingRange,
+  type AnalyticsRange,
 } from '../lib/ranges'
 
 /**
@@ -27,8 +27,8 @@ export function RangePicker({
   range,
   onChange,
 }: {
-  range: SpendingRange
-  onChange: (range: SpendingRange) => void
+  range: AnalyticsRange
+  onChange: (range: AnalyticsRange) => void
 }) {
   const { preset, window } = range
 

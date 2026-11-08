@@ -27,8 +27,8 @@ function SliceTooltip({ active, payload }: { active?: boolean; payload?: { paylo
 }
 
 /**
- * Where the window's money went, as a donut: a slice per note for the seven
- * biggest, then one grey "Others" — the expenses with no note, and any
+ * The window's money by note, as a donut: a slice per note for the seven
+ * biggest, then one grey "Others" — the entries with no note, and any
  * notes past the seventh.
  *
  * Slices are parted by a 2px gap in the card's colour, so two neighbours
@@ -44,7 +44,7 @@ export function NotePie({ shares }: { shares: Share[] }) {
         config={config}
         className="mx-auto aspect-square h-56"
         role="img"
-        aria-label="Share of spending per note"
+        aria-label="Share per note"
       >
         <PieChart>
           <ChartTooltip cursor={false} content={<SliceTooltip />} />

@@ -8,53 +8,75 @@ import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
-import { useSpendingSummary } from '../hooks/use-spending'
-import { useSpendingRange } from '../hooks/use-spending-range'
-import { useSpendingView, type SpendingView } from '../hooks/use-spending-view'
+import { useNoteTotals } from '../hooks/use-analytics'
+import { useAnalyticsKind } from '../hooks/use-analytics-kind'
+import { useAnalyticsRange } from '../hooks/use-analytics-range'
+import { useAnalyticsView, type AnalyticsView } from '../hooks/use-analytics-view'
+import { countOf, KIND_WORDS } from '../lib/kinds'
 import { formatWindow, PRESET_LABELS } from '../lib/ranges'
 import { sharesOf } from '../lib/shares'
+import type { Kind } from '../types'
 import { NotePie } from './note-pie'
 import { NoteRows } from './note-rows'
 import { RangePicker } from './range-picker'
 
 /**
- * The Analytics page: what went out in the window, then where it went — by
- * note, the note being the expense's type (decided 2026-11-08). Expenses
- * with no note are "Others".
+ * The Analytics page, a tab each for Expenses and Income: what moved in the
+ * window, then by note — the note being an entry's type (decided
+ * 2026-11-08). Entries with no note are "Others". A split income is one
+ * income, at its full amount.
  *
  * Two views of the same figures, the user's pick: a pie with its legend
  * (the default), or the list of rows with a bar of each share. Either way a
  * note opens its own page, which charts it day by day. Shares are whole
  * percentages that add up to exactly 100 (`wholePercents`, the same rule
  * the wallet and allocation breakdowns use).
+ *
+ * The tab, range and view all live in the URL, so each survives the others
+ * changing and a trip to a note's page and back.
  */
-export function SpendingOverview() {
-  const [range, setRange] = useSpendingRange()
-  const [view, setView] = useSpendingView()
-  const { data, isLoading, isError, error, isPlaceholderData } = useSpendingSummary(range.window)
+export function AnalyticsOverview() {
+  const [kind, setKind] = useAnalyticsKind()
+  const [range, setRange] = useAnalyticsRange()
+  const [view, setView] = useAnalyticsView()
+  const { data, isLoading, isError, error, isPlaceholderData } = useNoteTotals(
+    kind,
+    range.window,
+  )
 
-  const shares = sharesOf(data?.notes ?? [])
+  const words = KIND_WORDS[kind]
+  // `keepPreviousData` holds the other tab's figures while this one loads;
+  // they're never shown as this tab's.
+  const current = data?.kind === kind ? data : undefined
+  const shares = sharesOf(current?.notes ?? [])
 
   return (
     <div className="space-y-4">
+      <Tabs value={kind} onValueChange={(value) => setKind(value as Kind)}>
+        <TabsList className="h-10! w-full">
+          <TabsTrigger value="expense">{KIND_WORDS.expense.tab}</TabsTrigger>
+          <TabsTrigger value="income">{KIND_WORDS.income.tab}</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <section className="rounded-2xl bg-secondary p-5 text-secondary-foreground">
         <p className="text-sm opacity-80">
-          Spent · {range.preset === 'custom' ? 'Custom range' : PRESET_LABELS[range.preset]}
+          {words.verb} · {range.preset === 'custom' ? 'Custom range' : PRESET_LABELS[range.preset]}
         </p>
         <p className="mt-1 text-3xl font-semibold tabular-nums">
-          {formatMoney(data?.spent ?? 0)}
+          {formatMoney(current?.total ?? 0)}
         </p>
         <p className="mt-1 text-sm opacity-80">
           {formatWindow(range.window)}
-          {data && ` · ${data.count} ${data.count === 1 ? 'expense' : 'expenses'}`}
+          {current && ` · ${countOf(kind, current.count)}`}
         </p>
       </section>
 
       <RangePicker range={range} onChange={setRange} />
 
       <div className="flex items-center justify-between gap-3">
-        <h2 className="font-semibold">Where it went</h2>
-        <Tabs value={view} onValueChange={(value) => setView(value as SpendingView)}>
+        <h2 className="font-semibold">{words.heading}</h2>
+        <Tabs value={view} onValueChange={(value) => setView(value as AnalyticsView)}>
           {/* Icon-only, so the picked one is filled in primary: the theme's
               muted and background are a shade apart and wouldn't show it. */}
           <TabsList aria-label="Show as" className="h-9 border border-border">
@@ -81,16 +103,16 @@ export function SpendingOverview() {
       {isError ? (
         <Alert variant="destructive">
           <AlertDescription>
-            {getApiErrorMessage(error, 'Could not load your spending.')}
+            {getApiErrorMessage(error, 'Could not load these figures.')}
           </AlertDescription>
         </Alert>
-      ) : isLoading ? (
+      ) : isLoading || !current ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : shares.length === 0 ? (
         <EmptyState
           icon={ChartColumn}
-          title="Nothing spent"
-          description="Expenses in this range show up here, grouped by their note."
+          title={kind === 'income' ? 'Nothing received' : 'Nothing spent'}
+          description={`${words.tab} in this range show up here, grouped by their note.`}
         />
       ) : (
         <div className={cn('space-y-4 transition-opacity', isPlaceholderData && 'opacity-60')}>
@@ -99,7 +121,12 @@ export function SpendingOverview() {
               <NotePie shares={shares} />
             </section>
           )}
-          <NoteRows shares={shares} range={range} variant={view === 'pie' ? 'legend' : 'list'} />
+          <NoteRows
+            kind={kind}
+            shares={shares}
+            range={range}
+            variant={view === 'pie' ? 'legend' : 'list'}
+          />
         </div>
       )}
     </div>
