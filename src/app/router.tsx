@@ -3,6 +3,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@/components/layouts/app-layout'
 import { ProtectedRoute } from '@/features/auth'
 
+import { AnalyticsRoute } from './routes/analytics'
+import { AnalyticsNoteRoute } from './routes/analytics-note'
 import { DebtDetailRoute } from './routes/debt-detail'
 import { DebtsRoute } from './routes/debts'
 import { FundsRoute } from './routes/funds'
@@ -39,6 +41,8 @@ export function AppRouter() {
           <Route path="/transactions" element={<TransactionsRoute />} />
           <Route path="/upcoming" element={<UpcomingRoute />} />
           <Route path="/upcoming/:expenseId/:dueDate" element={<UpcomingDetailRoute />} />
+          <Route path="/analytics" element={<AnalyticsRoute />} />
+          <Route path="/analytics/note" element={<AnalyticsNoteRoute />} />
           <Route path="/debts" element={<DebtsRoute />} />
           <Route path="/debts/:debtId" element={<DebtDetailRoute />} />
           <Route path="/profile" element={<ProfileRoute />} />

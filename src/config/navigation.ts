@@ -1,6 +1,7 @@
 import {
   ArrowUpDown,
   CalendarClock,
+  ChartColumn,
   House,
   Landmark,
   UserRound,
@@ -31,14 +32,18 @@ export type NavItem = {
  * render this array, so an item can never exist in one and not the other.
  *
  * Only pages that exist are listed — never a dead link. The pill carries the
- * reference's five: home, funds, arrows, debts, profile. Upcoming is the one
- * sidebar-only page; on a phone it's reached from Home.
+ * reference's five plus Analytics: home, funds, arrows, analytics, debts,
+ * profile. Upcoming is the one sidebar-only page; on a phone it's reached from
+ * Home.
  */
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Home', to: '/', icon: House, end: true },
   // Wallets and allocations, as two tabs of one page.
   { label: 'Funds', to: '/funds', icon: Wallet },
   { label: 'Transactions', to: '/transactions', icon: ArrowUpDown },
+  // Expenses grouped by note, charted (2026-11-08). In the pill, by the
+  // user's call — the nav is the only way in.
+  { label: 'Analytics', to: '/analytics', icon: ChartColumn },
   { label: 'Upcoming', to: '/upcoming', icon: CalendarClock, inPill: false },
   { label: 'Debts', to: '/debts', icon: Landmark },
   { label: 'Profile', to: '/profile', icon: UserRound },
@@ -65,6 +70,8 @@ export const SUB_PAGES: SubPage[] = [
   { path: '/debts/:debtId', title: 'Debt', back: '/debts' },
   // One due date of one bill.
   { path: '/upcoming/:expenseId/:dueDate', title: 'Upcoming expense', back: '/upcoming' },
+  // One note's spending; the note and the range are in the query.
+  { path: '/analytics/note', title: 'Analytics', back: '/analytics' },
 ]
 
 /**
