@@ -41,6 +41,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // iOS fetches its launch screen itself when the app is added to the
+        // home screen; precaching all 38 would download them on every device.
+        globIgnores: ['splash/**'],
         cleanupOutdatedCaches: true,
         /*
          * Two deliberate omissions, both about auth:

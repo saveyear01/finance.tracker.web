@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
-import { Loader2 } from 'lucide-react'
 import { Navigate, useLocation } from 'react-router-dom'
+
+import { SplashScreen } from '@/components/splash-screen'
 
 import { useCurrentUser } from '../hooks/use-current-user'
 
@@ -13,14 +14,9 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useCurrentUser()
   const location = useLocation()
 
-  if (isLoading) {
-    return (
-      <div className="grid min-h-svh place-items-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-        <span className="sr-only">Checking your session…</span>
-      </div>
-    )
-  }
+  // The launch screen carries on until the session is known, so opening the
+  // app goes straight from the phone's splash to the first page.
+  if (isLoading) return <SplashScreen label="Checking your session…" />
 
   if (!isAuthenticated) {
     return (

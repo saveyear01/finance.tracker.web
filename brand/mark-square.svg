@@ -1,9 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="112" fill="#2e67ff"/>
-  <g transform="translate(256 256) scale(12.8) translate(-12 -12)"
-     fill="none" stroke="#ffffff" stroke-width="2"
-     stroke-linecap="round" stroke-linejoin="round">
-    <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/>
-    <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
-  </g>
+<!-- "Pockets" (chosen 2026-11-11): cards peeking out of one wallet, i.e.
+     several allocations held in a single place. Rounded square with
+     transparent corners: the "any" manifest icons and desktop installs. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <rect width="100" height="100" rx="22.5" fill="#11302c"/>
+  <rect x="26" y="16" width="48" height="34" rx="7" fill="#6ad6c9"/>
+  <rect x="20" y="26" width="60" height="34" rx="7" fill="#2bb3a5"/>
+  <rect x="14" y="40" width="72" height="44" rx="10" fill="#ffffff"/>
+  <circle cx="72" cy="62" r="5" fill="#11302c"/>
 </svg>

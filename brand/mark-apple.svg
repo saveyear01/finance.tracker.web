@@ -1,0 +1,9 @@
+<!-- iOS rounds the corners itself and fills any transparency with black, so
+     the apple-touch icon is the same art on a full, opaque square. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <rect width="100" height="100" fill="#11302c"/>
+  <rect x="26" y="16" width="48" height="34" rx="7" fill="#6ad6c9"/>
+  <rect x="20" y="26" width="60" height="34" rx="7" fill="#2bb3a5"/>
+  <rect x="14" y="40" width="72" height="44" rx="10" fill="#ffffff"/>
+  <circle cx="72" cy="62" r="5" fill="#11302c"/>
+</svg>
