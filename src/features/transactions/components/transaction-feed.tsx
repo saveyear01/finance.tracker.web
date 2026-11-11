@@ -8,7 +8,7 @@ import { getApiErrorMessage } from '@/lib/api-client'
 
 import { useTransactionPages } from '../hooks/use-transactions'
 import { formatActivityDate, localToday } from '../lib/transaction-meta'
-import type { Transaction } from '../types'
+import type { Transaction, TransactionFilter } from '../types'
 import { TransactionDrawer } from './transaction-drawer'
 import { TransactionRow } from './transaction-row'
 
@@ -55,8 +55,17 @@ function byDay(entries: Transaction[]): Array<{ date: string; entries: Transacti
  * the sentinel is visible before they scroll at all.
  *
  * Tapping a row opens it, to edit or delete.
+ *
+ * With `filter` it is one wallet's or one allocation's activity — the foot of
+ * its own page — and `empty` says what nothing means there.
  */
-export function TransactionFeed() {
+export function TransactionFeed({
+  filter,
+  empty,
+}: {
+  filter?: TransactionFilter
+  empty?: { title: string; description: string }
+} = {}) {
   const {
     transactions,
     isLoading,
@@ -66,7 +75,7 @@ export function TransactionFeed() {
     fetchNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
-  } = useTransactionPages(PAGE_SIZE)
+  } = useTransactionPages(PAGE_SIZE, filter)
   const sentinel = useRef<HTMLDivElement>(null)
   const [selected, setSelected] = useState<Transaction | null>(null)
 
@@ -106,8 +115,8 @@ export function TransactionFeed() {
     return (
       <EmptyState
         icon={Receipt}
-        title="No transactions yet"
-        description="Record an income or an expense from Home and it shows up here."
+        title={empty?.title ?? 'No transactions yet'}
+        description={empty?.description ?? 'Record an income or an expense from Home and it shows up here.'}
       />
     )
   }

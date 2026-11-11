@@ -29,20 +29,23 @@ export function currentAndNextMonth(now = new Date()): { current: string; next: 
 }
 
 /**
- * The "later" window: everything after next month, to the end of THIS year.
+ * The "later" window: the months after next, up to this month next year —
+ * with the two month tabs, a year ahead in all (decided 2026-11-11).
  *
- * Deliberately stops at the year's end rather than running on for twelve
- * months — a year is how people think about what is still to come, and it
- * keeps the tab from filling with dates that are barely decided yet.
- *
- * From November the window is empty, because "after next month" is already
- * next year by then. `empty` says so rather than leaving the caller to
- * compare month strings.
+ * It used to stop at December 31, which left the tab empty every November
+ * and December, exactly when next year's yearly bills come into view.
  */
-export function laterWindow(now = new Date()): { from: string; through: string; empty: boolean } {
-  const from = monthKeyOf(new Date(now.getFullYear(), now.getMonth() + 2, 1))
-  const through = `${now.getFullYear()}-12`
-  return { from, through, empty: from > through }
+export function laterWindow(now = new Date()): { from: string; through: string } {
+  return {
+    from: monthKeyOf(new Date(now.getFullYear(), now.getMonth() + 2, 1)),
+    through: monthKeyOf(new Date(now.getFullYear() + 1, now.getMonth(), 1)),
+  }
+}
+
+/** "2026-09" → "September 2026", always with the year. */
+export function monthTitle(monthKey: string): string {
+  const [year, month] = monthKey.split('-').map(Number)
+  return new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
 
 /** "2026-09" → "September", with the year only when it isn't this year. */
@@ -107,4 +110,39 @@ export function summarize(occurrences: Occurrence[], today: string) {
     }
   }
   return { toPayCents, overdueCents, paidCents, unpaid, overdue, paid }
+}
+
+/** Whole days from `from` to `to` (YYYY-MM-DD), counted in UTC so a DST
+ * change never makes a day 23 hours. */
+export function daysBetween(from: string, to: string): number {
+  const utc = (value: string) => {
+    const [y, m, d] = value.split('-').map(Number)
+    return Date.UTC(y, m - 1, d)
+  }
+  return Math.round((utc(to) - utc(from)) / 86_400_000)
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+/**
+ * Where a due date stands, in words and in days — "23 days overdue", "Due in
+ * 8 days", "Paid Sep 18". What a row's second line and the due date's page
+ * both say, so the two never disagree.
+ */
+export function whenText(occurrence: Occurrence, today: string): string {
+  const status = statusOf(occurrence, today)
+  const days = daysBetween(today, occurrence.due_date)
+  const over = status === 'paid' && Number(occurrence.remaining) < 0
+  switch (status) {
+    case 'overdue':
+      return `${plural(-days, 'day')} overdue`
+    case 'paid':
+      return over ? 'Over budget' : `Paid ${shortDate(occurrence.payments.at(-1)?.paid_on ?? occurrence.due_date)}`
+    case 'skipped':
+      return 'Skipped'
+    case 'partial':
+      return `Part paid · due ${days === 0 ? 'today' : `in ${plural(days, 'day')}`}`
+    case 'due':
+      return days === 0 ? 'Due today' : days === 1 ? 'Due tomorrow' : `Due in ${days} days`
+  }
 }

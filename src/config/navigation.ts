@@ -66,6 +66,9 @@ export type SubPage = {
 export const SUB_PAGES: SubPage[] = [
   { path: '/profile/settings', title: 'Profile settings', back: '/profile' },
   { path: '/profile/income-split', title: 'Income split', back: '/profile' },
+  // One wallet's and one allocation's own page (2026-11-11), back to their tab.
+  { path: '/funds/wallets/:walletId', title: 'Wallet', back: '/funds?tab=wallets' },
+  { path: '/funds/allocations/:fundId', title: 'Allocation', back: '/funds?tab=allocations' },
   // One debt in full. `:debtId` stands for any one segment — see `matchSubPage`.
   { path: '/debts/:debtId', title: 'Debt', back: '/debts' },
   // One due date of one bill.

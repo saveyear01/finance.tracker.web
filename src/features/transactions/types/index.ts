@@ -87,3 +87,7 @@ export type ActionInput =
   | ReallocationInput
   | TransferInput
   | AdjustmentInput
+
+/** Narrows the activity to one wallet's or one allocation's legs — what their
+ * own pages list. Both together: that one pair. */
+export type TransactionFilter = { walletId?: string; fundId?: string }

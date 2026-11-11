@@ -4,7 +4,9 @@
  */
 export { ArchiveFundDrawer } from './components/archive-fund-drawer'
 export { FundDrawer } from './components/fund-drawer'
-export { FundsList } from './components/funds-list'
+export { FundDetail } from './components/fund-detail'
+export { FundRows } from './components/fund-rows'
+export { fundColors, OTHER_FUND_COLOR } from './lib/fund-colors'
 export { OverdrawnNotice } from './components/overdrawn-notice'
 export { useFunds } from './hooks/use-funds'
 export { fundKeys } from './api/funds-keys'

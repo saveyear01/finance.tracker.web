@@ -4,7 +4,8 @@
  */
 export { ArchiveWalletDrawer } from './components/archive-wallet-drawer'
 export { WalletDrawer } from './components/wallet-drawer'
-export { WalletsList } from './components/wallets-list'
+export { WalletDetail } from './components/wallet-detail'
+export { WalletRows } from './components/wallet-rows'
 export { useWallets } from './hooks/use-wallets'
 export { walletKeys } from './api/wallets-keys'
 export { WALLET_TYPE_META } from './lib/wallet-meta'

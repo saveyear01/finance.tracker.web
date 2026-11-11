@@ -7,6 +7,8 @@ export type BreakdownItem = {
   label: string
   /** Decimal string, as the API sends it. */
   amount: string
+  /** The bar's colour — an allocation's own; `primary` when left out. */
+  color?: string
 }
 
 const centsOf = (amount: string) => Math.round(Number(amount) * 100)
@@ -68,7 +70,10 @@ export function BreakdownList({
             <div className="h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
               <div
                 className="h-full rounded-full bg-primary"
-                style={{ width: totalCents > 0 ? `${(held[index] / totalCents) * 100}%` : 0 }}
+                style={{
+                  width: totalCents > 0 ? `${(held[index] / totalCents) * 100}%` : 0,
+                  ...(item.color && { backgroundColor: item.color }),
+                }}
               />
             </div>
           </li>

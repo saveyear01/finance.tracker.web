@@ -8,6 +8,8 @@ import { AnalyticsNoteRoute } from './routes/analytics-note'
 import { DebtDetailRoute } from './routes/debt-detail'
 import { DebtsRoute } from './routes/debts'
 import { FundsRoute } from './routes/funds'
+import { FundsAllocationDetailRoute } from './routes/funds-allocation-detail'
+import { FundsWalletDetailRoute } from './routes/funds-wallet-detail'
 import { HomeRoute } from './routes/home'
 import { LoginRoute } from './routes/login'
 import { ProfileRoute } from './routes/profile'
@@ -38,6 +40,8 @@ export function AppRouter() {
           {/* Wallets and Funds became one page; old links land on its tab. */}
           <Route path="/wallets" element={<Navigate to="/funds?tab=wallets" replace />} />
           <Route path="/funds" element={<FundsRoute />} />
+          <Route path="/funds/wallets/:walletId" element={<FundsWalletDetailRoute />} />
+          <Route path="/funds/allocations/:fundId" element={<FundsAllocationDetailRoute />} />
           <Route path="/transactions" element={<TransactionsRoute />} />
           <Route path="/upcoming" element={<UpcomingRoute />} />
           <Route path="/upcoming/:expenseId/:dueDate" element={<UpcomingDetailRoute />} />

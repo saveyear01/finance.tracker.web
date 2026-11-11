@@ -20,16 +20,17 @@ import {
   transfer,
 } from '../api/transactions-api'
 import { transactionKeys } from '../api/transactions-keys'
-import type { EditableAction } from '../types'
+import type { EditableAction, TransactionFilter } from '../types'
 
 /**
- * Every entry, a page at a time — the Transactions page's infinite scroll.
- * Each page's `next_cursor` is the next page's param; a null cursor ends it.
+ * Every entry, a page at a time — the Transactions page's infinite scroll,
+ * or (with `filter`) a wallet's or an allocation's own page's. Each page's
+ * `next_cursor` is the next page's param; a null cursor ends it.
  */
-export function useTransactionPages(pageSize = 20) {
+export function useTransactionPages(pageSize = 20, filter: TransactionFilter = {}) {
   const query = useInfiniteQuery({
-    queryKey: transactionKeys.pages(pageSize),
-    queryFn: ({ pageParam }) => listTransactions({ limit: pageSize, cursor: pageParam }),
+    queryKey: transactionKeys.pages(pageSize, filter),
+    queryFn: ({ pageParam }) => listTransactions({ limit: pageSize, cursor: pageParam, ...filter }),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.next_cursor,
   })

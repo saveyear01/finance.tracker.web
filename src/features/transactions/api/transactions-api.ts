@@ -8,8 +8,7 @@ import type {
   ReallocationInput,
   Transaction,
   TransactionPage,
-  TransferInput,
-} from '../types'
+  TransferInput, TransactionFilter } from '../types'
 
 /**
  * `GET /api/transactions/` — one page of entries across all wallets, newest
@@ -19,13 +18,20 @@ import type {
 export function listTransactions({
   limit,
   cursor,
+  walletId,
+  fundId,
 }: {
   limit: number
   cursor?: string | null
-}): Promise<TransactionPage> {
+} & TransactionFilter): Promise<TransactionPage> {
   return unwrap(
     apiClient.get<TransactionPage>('/transactions/', {
-      params: { limit, ...(cursor && { cursor }) },
+      params: {
+        limit,
+        ...(cursor && { cursor }),
+        ...(walletId && { wallet_id: walletId }),
+        ...(fundId && { fund_id: fundId }),
+      },
     }),
   )
 }

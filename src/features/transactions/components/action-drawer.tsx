@@ -175,6 +175,7 @@ export function ActionDrawer({
   action,
   editing = null,
   via = null,
+  preset = null,
   onOpenChange,
 }: {
   /** The action being recorded or edited, or null when the drawer is shut. */
@@ -183,6 +184,9 @@ export function ActionDrawer({
   editing?: Transaction[] | null
   /** Record the expense through someone else's endpoint instead. */
   via?: ExpenseVia | null
+  /** Picked up front when recording — from a wallet's or an allocation's own
+   * page, so "Expense" there starts from that wallet or allocation. */
+  preset?: { walletId?: string; fundId?: string } | null
   onOpenChange: (open: boolean) => void
 }) {
   const open = action !== null
@@ -290,11 +294,12 @@ export function ActionDrawer({
     }
     reset({
       action,
-      wallet_id: activeWallets.length === 1 ? activeWallets[0].id : '',
+      wallet_id: preset?.walletId ?? (activeWallets.length === 1 ? activeWallets[0].id : ''),
       to_wallet_id: '',
-      fund_id: '',
+      fund_id: preset?.fundId ?? '',
       to_fund_id: '',
-      auto_allocate: action === 'income' && rules.length > 0,
+      // Income from an allocation's page goes to that allocation, not split.
+      auto_allocate: action === 'income' && rules.length > 0 && !preset?.fundId,
       amount: via?.amount ?? '',
       note: '',
       date: localToday(),

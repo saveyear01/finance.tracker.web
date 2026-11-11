@@ -9,10 +9,10 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { EmptyState } from '@/components/layouts/empty-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
 import { localToday } from '@/features/transactions'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
@@ -25,23 +25,16 @@ import {
   useUndoSkip,
   useUnpinUpcoming,
 } from '../hooks/use-upcoming'
-import { RECURRENCE_LABELS, shortDate, statusOf, type RowStatus } from '../lib/upcoming-meta'
+import { RECURRENCE_LABELS, shortDate, statusOf, whenText, type RowStatus } from '../lib/upcoming-meta'
 import type { Occurrence, UpcomingExpense } from '../types'
 
-const STATUS_LABEL: Record<RowStatus, string> = {
-  paid: 'Paid',
-  skipped: 'Skipped',
-  overdue: 'Overdue',
-  partial: 'Part paid',
-  due: 'Due',
-}
-
-const STATUS_TONE: Record<RowStatus, string> = {
-  paid: 'bg-success/10 text-success',
-  skipped: 'bg-muted text-muted-foreground',
-  overdue: 'bg-destructive/10 text-destructive',
-  partial: 'bg-primary/10 text-primary',
-  due: 'bg-muted text-muted-foreground',
+/** The line under the name — where the bill stands, in days. */
+const WHEN_TONE: Record<RowStatus, string> = {
+  paid: 'font-semibold text-success',
+  skipped: 'text-muted-foreground',
+  overdue: 'font-semibold text-destructive',
+  partial: 'text-muted-foreground',
+  due: 'text-muted-foreground',
 }
 
 /**
@@ -91,10 +84,10 @@ function tileParts(isoDate: string): { month: string; day: string } {
  * actually looks like, and nothing like the debts page's plain rows.
  *
  * Skip is offered only on an overdue date (a bill still to come is paid or
- * left alone) and turns into Undo once skipped. The pin sits in the header
- * beside the name, filled while the bill is on Home: it pins the whole bill
- * — as whichever due date is next to pay, not this one. Delete sits apart at the bottom: it removes the whole
- * bill, not this one date.
+ * left alone) and turns into Undo once skipped. The pin is a labelled switch
+ * at the foot of the card (2026-11-11; it was an icon button read by its
+ * fill): it pins the whole bill to Home, not this date. Delete sits apart at
+ * the bottom: it removes the whole bill, not this one date.
  */
 export function UpcomingDetail({
   id,
@@ -201,42 +194,12 @@ export function UpcomingDetail({
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-lg font-medium">{expense.name}</p>
-            <p className="truncate text-sm text-muted-foreground">
-              {RECURRENCE_LABELS[expense.recurrence]}
+            {/* How late, or how soon — the tile beside it already says the day. */}
+            <p className={cn('text-sm', WHEN_TONE[status])}>{whenText(occurrence, today)}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {RECURRENCE_LABELS[expense.recurrence]} · {formatMoney(expense.amount)}
             </p>
-            {/* Just the standing: the tile beside it already says the day. */}
-            <span
-              className={cn(
-                'mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium',
-                STATUS_TONE[status],
-              )}
-            >
-              {STATUS_LABEL[status]}
-            </span>
           </div>
-          {/* The pin lives with the bill's name, where its state is read at a
-              glance: filled and blue while pinned to Home, hollow when not.
-              It pins the whole bill, not this date. */}
-          <button
-            type="button"
-            onClick={togglePin}
-            disabled={pin.isPending || unpin.isPending}
-            aria-pressed={isPinned}
-            aria-label={isPinned ? 'Unpin from Home' : 'Pin to Home'}
-            title={isPinned ? 'Pinned to Home' : 'Pin to Home'}
-            className={cn(
-              'grid size-10 shrink-0 place-items-center rounded-full transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50',
-              isPinned
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground',
-            )}
-          >
-            {isPinned ? (
-              <Pin className="size-4 fill-current" aria-hidden="true" />
-            ) : (
-              <Pin className="size-4" aria-hidden="true" />
-            )}
-          </button>
         </div>
 
         {/* Paid past the amount: the headline becomes the overrun, negative
@@ -287,11 +250,21 @@ export function UpcomingDetail({
             </>
           )}
           {paidCents === 0 && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              of {formatMoney(expense.amount)} · nothing paid yet
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">nothing paid yet</p>
           )}
         </div>
+
+        <label className="flex cursor-pointer items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm">
+          <span className="flex items-center gap-2">
+            <Pin className="size-4 text-muted-foreground" aria-hidden="true" />
+            Pin to Home
+          </span>
+          <Switch
+            checked={isPinned}
+            onCheckedChange={togglePin}
+            disabled={pin.isPending || unpin.isPending}
+          />
+        </label>
       </section>
 
       {/* Pay is the whole point of the page, so it gets the full width and
@@ -340,11 +313,10 @@ export function UpcomingDetail({
           Payments{payments.length > 1 && ` · ${payments.length}`}
         </h2>
         {payments.length === 0 ? (
-          <EmptyState
-            icon={CalendarCheck}
-            title="Nothing paid yet"
-            description="Paying records a real expense from a wallet. Pay part of it and the rest stays due."
-          />
+          <p className="flex items-center gap-2.5 rounded-xl border border-dashed border-border px-3.5 py-3 text-sm text-muted-foreground">
+            <CalendarCheck className="size-4 shrink-0" aria-hidden="true" />
+            Nothing paid yet. Paying part of it leaves the rest due.
+          </p>
         ) : (
           // A timeline, oldest at the top: instalments happen in order, and
           // reading down the line is reading how the bill got paid down.

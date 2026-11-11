@@ -2,7 +2,10 @@ import { useSearchParams } from 'react-router-dom'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-import { currentAndNextMonth, laterWindow, monthName } from '../lib/upcoming-meta'
+import { localToday } from '@/features/transactions'
+
+import { useDue } from '../hooks/use-upcoming'
+import { currentAndNextMonth, laterWindow, monthName, summarize } from '../lib/upcoming-meta'
 import { MonthBills } from './month-bills'
 
 const TABS = ['current', 'next', 'later'] as const
@@ -10,13 +13,15 @@ type UpcomingTab = (typeof TABS)[number]
 
 /**
  * The upcoming expenses in three tabs: this month (with anything overdue
- * carried in), next month, and everything after that to the end of the year.
+ * carried in, and counted in red on the tab so it shows from the others),
+ * next month, and the months after that up to this month next year (a
+ * rolling year since 2026-11-11 — it used to stop at December 31, and sat
+ * empty every November and December).
  *
  * The later tab leaves out bills that repeat every month — they are on the
  * month tabs, and over a window of several months they would appear again
  * and again and bury the one-offs and yearly bills that are the reason to
- * look that far ahead. It stops at the year's end rather than running on
- * indefinitely, so what it shows stays something you can still act on.
+ * look that far ahead.
  *
  * The tab lives in the URL (`?tab=later`), as it does on Funds: opening a due
  * date and coming back should land where you were, and a row passes this
@@ -34,6 +39,9 @@ export function UpcomingTabs({ onAdd }: { onAdd: () => void }) {
 
   const { current, next } = currentAndNextMonth()
   const later = laterWindow()
+  // The same query as the first tab's list, so no extra fetch.
+  const { occurrences } = useDue(current, { carryOverdue: true })
+  const { overdue } = summarize(occurrences, localToday())
 
   return (
     <Tabs
@@ -46,17 +54,19 @@ export function UpcomingTabs({ onAdd }: { onAdd: () => void }) {
             tooltip and in each tab's own empty state. */}
         <TabsTrigger value="current" title={monthName(current)}>
           This month
+          {overdue > 0 && (
+            <span className="text-[11px] font-bold text-destructive tabular-nums">
+              {overdue}
+              <span className="sr-only"> overdue</span>
+            </span>
+          )}
         </TabsTrigger>
         <TabsTrigger value="next" title={monthName(next)}>
           Next month
         </TabsTrigger>
         <TabsTrigger
           value="later"
-          title={
-            later.empty
-              ? `Nothing left in ${later.through.slice(0, 4)}`
-              : `${monthName(later.from)}–${monthName(later.through)}`
-          }
+          title={`${monthName(later.from)}–${monthName(later.through)}`}
         >
           Later
         </TabsTrigger>
@@ -68,9 +78,6 @@ export function UpcomingTabs({ onAdd }: { onAdd: () => void }) {
         <MonthBills month={next} onAdd={onAdd} />
       </TabsContent>
       <TabsContent value="later">
-        {/* An empty window (from November, when "after next month" is already
-            next year) needs no special case: the API answers it with nothing,
-            and the tab says so. */}
         <MonthBills month={later.from} through={later.through} excludeMonthly onAdd={onAdd} />
       </TabsContent>
     </Tabs>
