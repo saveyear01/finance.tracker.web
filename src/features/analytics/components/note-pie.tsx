@@ -27,13 +27,18 @@ function SliceTooltip({ active, payload }: { active?: boolean; payload?: { paylo
 }
 
 /**
- * The window's money by note, as a donut: a slice per note for the seven
+ * The window's money by note, as a donut: a slice per note for the six
  * biggest, then one grey "Others" — the entries with no note, and any
- * notes past the seventh.
+ * notes past the sixth.
  *
  * Slices are parted by a 2px gap in the card's colour, so two neighbours
  * never run together. The legend under it (`NoteRows`) names every slice
  * with its amount and share, so nothing here is told by colour alone.
+ *
+ * Hidden from assistive tech, and kept out of the tab order: the legend is
+ * the accessible version of these figures, in full. Recharts' own
+ * accessibility layer would add a focusable, outline-less `application`
+ * whose arrow keys only drive axis charts — a dead tab stop on a donut.
  */
 export function NotePie({ shares }: { shares: Share[] }) {
   const { slices, folded } = slicesOf(shares)
@@ -43,10 +48,9 @@ export function NotePie({ shares }: { shares: Share[] }) {
       <ChartContainer
         config={config}
         className="mx-auto aspect-square h-56"
-        role="img"
-        aria-label="Share per note"
+        aria-hidden="true"
       >
-        <PieChart>
+        <PieChart accessibilityLayer={false}>
           <ChartTooltip cursor={false} content={<SliceTooltip />} />
           <Pie
             data={slices}

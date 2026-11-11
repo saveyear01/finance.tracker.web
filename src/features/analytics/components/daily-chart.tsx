@@ -13,7 +13,7 @@ import type { DayTotal, Kind } from '../types'
 
 // Expenses in the primary blue; income in the app's green for money in.
 const configs = {
-  expense: { total: { label: 'Spent', color: 'var(--primary)' } },
+  expense: { total: { label: 'Spent', color: 'var(--series-1)' } },
   income: { total: { label: 'Received', color: 'var(--success)' } },
 } satisfies Record<Kind, ChartConfig>
 

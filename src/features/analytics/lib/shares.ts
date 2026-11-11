@@ -3,14 +3,15 @@ import { wholePercents } from '@/lib/percents'
 import type { NoteTotal } from '../types'
 
 /**
- * How many notes get a slice of their own. The pie's palette is seven hues
- * validated for colour-blind separation next to each other (`--series-1`…
- * `--series-7` in index.css); an eighth slice would need a generated hue, so
- * everything past them folds into "Others".
+ * How many notes get a slice of their own. The pie's palette is six hues
+ * (`--series-1`…`--series-6` in index.css) validated for colour-blind
+ * separation against every neighbour a donut can give them — including the
+ * last slice meeting slot 1 where the ring closes, which is what rules out a
+ * seventh. Everything past them folds into "Others".
  */
-export const PIE_SLOTS = 7
+export const PIE_SLOTS = 6
 
-const OTHERS_COLOR = 'var(--series-other)'
+export const OTHERS_COLOR = 'var(--series-other)'
 
 /** One note as both views show it: its share, and the colour it wears. */
 export type Share = NoteTotal & {
@@ -26,9 +27,9 @@ export type Slice = { key: string; label: string; cents: number; percent: number
 /**
  * The window's notes with their shares and colours, biggest first.
  *
- * The seven biggest NOTED groups get a hue each, in the palette's fixed
+ * The six biggest NOTED groups get a hue each, in the palette's fixed
  * order. The entries with no note — "Others" — and any notes past the
- * seventh share the grey: they are the one "Others" slice of the pie.
+ * sixth share the grey: they are the one "Others" slice of the pie.
  */
 export function sharesOf(notes: NoteTotal[]): Share[] {
   const cents = notes.map((group) => Math.round(Number(group.total) * 100))
