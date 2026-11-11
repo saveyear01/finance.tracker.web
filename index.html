@@ -126,11 +126,12 @@
 
       @media (prefers-reduced-motion: no-preference) {
         #boot.is-playing .boot-mark { animation: boot-tilt 760ms cubic-bezier(0.2, 0.75, 0.25, 1) 120ms both; }
-        #boot.is-playing .boot-float { animation: boot-float 3.4s ease-in-out 1500ms infinite; }
+        /* Rests still on the finished logo first; floats only if loading runs past the hold. */
+        #boot.is-playing .boot-float { animation: boot-float 3.4s ease-in-out 2600ms infinite; }
         #boot.is-playing .boot-tile { animation: boot-sink 760ms cubic-bezier(0.2, 0.75, 0.25, 1) 120ms both; }
         #boot.is-playing .boot-wallet { animation: boot-lift 760ms cubic-bezier(0.2, 0.75, 0.25, 1) 120ms both; }
-        #boot.is-playing .boot-c2 { animation: boot-rise-2 820ms cubic-bezier(0.34, 1.5, 0.5, 1) 420ms both, boot-bob-2 3.4s ease-in-out 1500ms infinite; }
-        #boot.is-playing .boot-c1 { animation: boot-rise-1 820ms cubic-bezier(0.34, 1.5, 0.5, 1) 560ms both, boot-bob-1 3.4s ease-in-out 1650ms infinite; }
+        #boot.is-playing .boot-c2 { animation: boot-rise-2 820ms cubic-bezier(0.34, 1.5, 0.5, 1) 420ms both, boot-bob-2 3.4s ease-in-out 2600ms infinite; }
+        #boot.is-playing .boot-c1 { animation: boot-rise-1 820ms cubic-bezier(0.34, 1.5, 0.5, 1) 560ms both, boot-bob-1 3.4s ease-in-out 2750ms infinite; }
         #boot.is-playing .boot-wallet i:last-child::after { animation: boot-glint 900ms ease-out 1150ms both; }
         #boot.is-leaving .boot-mark { animation: boot-leave 420ms cubic-bezier(0.5, 0, 0.75, 0) both; }
         #boot.is-leaving .boot-c1, #boot.is-leaving .boot-c2 { animation: boot-tuck 300ms cubic-bezier(0.5, 0, 0.75, 0) both; }

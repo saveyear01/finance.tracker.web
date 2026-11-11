@@ -2,15 +2,15 @@
  * The animated launch screen (`#boot` in index.html) — dismissed from here
  * once the app knows what to show.
  *
- * On a COLD START (the installed app opened from the home screen) it stays
- * until the show has played — the cards out and the glint run — so the
- * launch reads as one moment rather than a flicker (the user's call,
- * 2026-11-11). A reload or a browser tab never waits: there the app comes up
- * the moment it's ready.
+ * It always plays the whole show, on every start (browser tabs and reloads
+ * too), then rests on the finished logo before leaving — the user's call,
+ * 2026-11-11: a fast load used to cut it off mid-tilt. With reduced motion
+ * there is no show to wait for, so it leaves as soon as the app is ready.
  */
 
-/** From the animation's start to the cards out and the glint done. */
-const SHOW_MS = 1400
+/** From the animation's start: the cards out (1.38s), the glint done
+ *  (2.05s), then a rest on the finished logo. */
+const SHOW_MS = 2600
 /** The exit (cards tucked back, mark lifted away), then the fade. */
 const LEAVE_MS = 450
 
@@ -21,14 +21,7 @@ declare global {
   }
 }
 
-function isColdStart(): boolean {
-  const standalone =
-    window.matchMedia('(display-mode: standalone)').matches ||
-    // iOS before it reported display-mode for home-screen apps.
-    (navigator as Navigator & { standalone?: boolean }).standalone === true
-  const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
-  return standalone && (nav?.type ?? 'navigate') === 'navigate'
-}
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 let dismissed = false
 
@@ -45,7 +38,7 @@ export function dismissBoot(): void {
   dismissed = true
 
   const elapsed = performance.now() - (window.__bootStart ?? 0)
-  const wait = isColdStart() ? Math.max(0, SHOW_MS - elapsed) : 0
+  const wait = reducedMotion() ? 0 : Math.max(0, SHOW_MS - elapsed)
 
   window.setTimeout(() => {
     boot.classList.replace('is-playing', 'is-leaving')
