@@ -7,17 +7,11 @@ import { toast } from 'sonner'
 
 import { AddCard } from '@/components/add-card'
 import { EmptyState } from '@/components/layouts/empty-state'
+import { Picker } from '@/components/picker'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useFunds } from '@/features/funds'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
@@ -187,6 +181,16 @@ export function AllocationEditor() {
             const options = eligible.filter(
               (fund) => fund.id === watched[index]?.fund_id || !chosen.has(fund.id),
             )
+            const current = watched[index]?.fund_id
+            const pickerOptions = options.map((fund) => ({ value: fund.id, label: fund.name }))
+            // A saved row whose allocation is no longer offered (archived since)
+            // still shows its name rather than reading as empty.
+            if (current && !options.some((fund) => fund.id === current)) {
+              pickerOptions.unshift({
+                value: current,
+                label: nameOf.get(current) ?? 'Unknown allocation',
+              })
+            }
 
             return (
               <li
@@ -199,33 +203,14 @@ export function AllocationEditor() {
                       control={control}
                       name={`rules.${index}.fund_id`}
                       render={({ field: select }) => (
-                        <Select
-                          value={select.value || null}
-                          onValueChange={(value) => select.onChange(value ?? '')}
-                        >
-                          <SelectTrigger
-                            className="h-11! w-full"
-                            aria-label={`Allocation for row ${index + 1}`}
-                            aria-invalid={Boolean(rowErrors?.fund_id)}
-                          >
-                            <SelectValue>
-                              {(value) =>
-                                value ? (
-                                  (nameOf.get(value as string) ?? 'Unknown allocation')
-                                ) : (
-                                  <span className="text-muted-foreground">Choose an allocation</span>
-                                )
-                              }
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {options.map((fund) => (
-                              <SelectItem key={fund.id} value={fund.id}>
-                                {fund.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Picker
+                          value={select.value ?? ''}
+                          onChange={select.onChange}
+                          label={`Allocation for row ${index + 1}`}
+                          placeholder="Choose an allocation"
+                          invalid={Boolean(rowErrors?.fund_id)}
+                          options={pickerOptions}
+                        />
                       )}
                     />
                     <FieldError errors={[rowErrors?.fund_id]} />

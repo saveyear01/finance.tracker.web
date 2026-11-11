@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 
 import { AmountPad } from '@/components/amount-pad'
 import { DatePicker } from '@/components/date-picker'
-import { FormPicker, type PickerOption } from '@/components/form-picker'
+import { SegmentedControl, type SegmentOption } from '@/components/segmented-control'
 import { Stepper } from '@/components/stepper'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,6 @@ import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 
 import { useCreateUpcoming, useUpdateUpcoming } from '../hooks/use-upcoming'
-import { RECURRENCE_LABELS } from '../lib/upcoming-meta'
 import { upcomingSchema, type UpcomingFormValues } from '../schemas/upcoming-schemas'
 import type { Recurrence, UpcomingExpense } from '../types'
 
@@ -33,9 +32,12 @@ const STEPS = ['Details', 'Amount']
 /** The fields the first step asks for — checked before moving on. */
 const DETAILS: (keyof UpcomingFormValues)[] = ['name', 'due_date', 'recurrence', 'note']
 
-const RECURRENCE_OPTIONS: PickerOption[] = (['none', 'monthly', 'yearly'] as Recurrence[]).map(
-  (value) => ({ value, label: RECURRENCE_LABELS[value] }),
-)
+// Short labels: the three share one segmented row, under "Repeats".
+const RECURRENCE_OPTIONS: SegmentOption<Recurrence>[] = [
+  { value: 'none', label: 'Once' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly', label: 'Yearly' },
+]
 
 /** A stored amount as the keypad would have typed it: "1500", "1500.50". */
 function asTyped(amount: string): string {
@@ -191,13 +193,23 @@ export function UpcomingDrawer({
                     />
                     <FieldError errors={[errors.due_date]} />
                   </div>
-                  <FormPicker
-                    control={control}
-                    name="recurrence"
-                    label="Repeats"
-                    placeholder="Choose"
-                    options={RECURRENCE_OPTIONS}
-                  />
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-medium" aria-hidden="true">
+                      Repeats
+                    </p>
+                    <Controller
+                      control={control}
+                      name="recurrence"
+                      render={({ field }) => (
+                        <SegmentedControl
+                          label="Repeats"
+                          value={field.value}
+                          onChange={field.onChange}
+                          options={RECURRENCE_OPTIONS}
+                        />
+                      )}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">

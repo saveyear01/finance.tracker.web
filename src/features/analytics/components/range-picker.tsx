@@ -1,22 +1,16 @@
 import { DatePicker } from '@/components/date-picker'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { SegmentedControl } from '@/components/segmented-control'
 
 import {
   PRESET_LABELS,
   PRESETS,
   windowOf,
-  type RangePreset,
   type AnalyticsRange,
 } from '../lib/ranges'
 
 /**
- * Pick the window: a preset (this month by default), or a custom from–to.
+ * Pick the window: a preset (this month by default), or a custom from–to,
+ * as a row of chips.
  * Choosing "Custom range" starts from the window already shown, so it is a
  * tweak of what you were looking at rather than a blank form.
  *
@@ -34,28 +28,25 @@ export function RangePicker({
 
   return (
     <div className="space-y-2">
-      <Select
+      {/* Chips, not a dropdown: the range in force stays in view, and
+          switching is one tap. "Custom" is short here — the dates under it
+          say the rest. */}
+      <SegmentedControl
+        variant="chips"
+        label="Time range"
         value={preset}
-        onValueChange={(value) => {
-          const next = value as RangePreset
+        onChange={(next) =>
           onChange(
             next === 'custom'
               ? { preset: 'custom', window }
               : { preset: next, window: windowOf(next) },
           )
-        }}
-      >
-        <SelectTrigger className="h-11! w-full bg-card text-base md:text-sm" aria-label="Time range">
-          <SelectValue>{(value) => PRESET_LABELS[value as RangePreset]}</SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {PRESETS.map((option) => (
-            <SelectItem key={option} value={option}>
-              {PRESET_LABELS[option]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        }
+        options={PRESETS.map((option) => ({
+          value: option,
+          label: option === 'custom' ? 'Custom' : PRESET_LABELS[option],
+        }))}
+      />
 
       {preset === 'custom' && (
         <div className="grid grid-cols-2 gap-2">

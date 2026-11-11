@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
 
+import { SegmentedControl } from '@/components/segmented-control'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,19 +22,12 @@ import {
   FieldLabel,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { getApiErrorMessage } from '@/lib/api-client'
 
 import { useCreateWallet, useUpdateWallet } from '../hooks/use-mutate-wallet'
 import { WALLET_TYPE_META } from '../lib/wallet-meta'
 import { walletSchema, type WalletFormValues } from '../schemas/wallet-schema'
-import { WALLET_TYPES, type Wallet, type WalletType } from '../types'
+import { WALLET_TYPES, type Wallet } from '../types'
 
 type Props = {
   open: boolean
@@ -141,36 +135,25 @@ export function WalletDrawer({ open, onOpenChange, wallet = null }: Props) {
               <Field>
                 <FieldLabel htmlFor="wallet-type">Type</FieldLabel>
                 {/*
-                  Controller rather than register: the Select is not a native
-                  input, so it has no ref for react-hook-form to attach to.
+                  Controller rather than register: the segmented control is
+                  not a native input, so it has no ref to attach to. Three
+                  fixed types — all in view, one tap — rather than a dropdown.
                 */}
                 <Controller
                   control={control}
                   name="type"
                   render={({ field }) => (
-                    <Select
+                    <SegmentedControl
+                      id="wallet-type"
+                      label="Type"
                       value={field.value}
-                      onValueChange={(value) => field.onChange(value as WalletType)}
-                    >
-                      <SelectTrigger
-                        id="wallet-type"
-                        className="h-11! w-full"
-                        aria-invalid={Boolean(errors.type)}
-                      >
-                        {/* Without a formatter this renders the raw value —
-                            "ewallet" rather than "E-wallet". */}
-                        <SelectValue>
-                          {(value) => WALLET_TYPE_META[value as WalletType].label}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {WALLET_TYPES.map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {WALLET_TYPE_META[type].label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      onChange={(value) => field.onChange(value)}
+                      options={WALLET_TYPES.map((type) => ({
+                        value: type,
+                        label: WALLET_TYPE_META[type].label,
+                      }))}
+                      invalid={Boolean(errors.type)}
+                    />
                   )}
                 />
                 <FieldError errors={[errors.type]} />

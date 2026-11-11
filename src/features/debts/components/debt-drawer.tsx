@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 
 import { AmountPad } from '@/components/amount-pad'
 import { DatePicker } from '@/components/date-picker'
-import { FormPicker, type PickerOption } from '@/components/form-picker'
+import { SegmentedControl, type SegmentOption } from '@/components/segmented-control'
 import { Stepper } from '@/components/stepper'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,6 @@ import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 
 import { useCreateDebt, useUpdateDebt } from '../hooks/use-debts'
-import { RATE_KIND_LABELS } from '../lib/debt-meta'
 import { debtSchema, type DebtFormValues } from '../schemas/debt-schemas'
 import type { Debt, RateKind } from '../types'
 
@@ -41,10 +40,11 @@ const DETAILS: (keyof DebtFormValues)[] = [
   'note',
 ]
 
-const RATE_KIND_OPTIONS: PickerOption[] = (['fixed', 'variable'] as RateKind[]).map((value) => ({
-  value,
-  label: RATE_KIND_LABELS[value],
-}))
+// Short labels: they share one segmented row, under the "Interest" label.
+const RATE_KIND_OPTIONS: SegmentOption<RateKind>[] = [
+  { value: 'fixed', label: 'Fixed' },
+  { value: 'variable', label: 'Variable' },
+]
 
 /** A stored amount as the keypad would have typed it: "1500", "1500.50". */
 function asTyped(amount: string): string {
@@ -254,13 +254,23 @@ export function DebtDrawer({
                     />
                     <FieldError errors={[errors.opened_on]} />
                   </div>
-                  <FormPicker
-                    control={control}
-                    name="rate_kind"
-                    label="Interest"
-                    placeholder="Choose"
-                    options={RATE_KIND_OPTIONS}
-                  />
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-medium" aria-hidden="true">
+                      Interest
+                    </p>
+                    <Controller
+                      control={control}
+                      name="rate_kind"
+                      render={({ field }) => (
+                        <SegmentedControl
+                          label="Interest"
+                          value={field.value}
+                          onChange={field.onChange}
+                          options={RATE_KIND_OPTIONS}
+                        />
+                      )}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">

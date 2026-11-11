@@ -1,14 +1,7 @@
-import { Archive, ArchiveRestore, EllipsisVertical, Pencil } from 'lucide-react'
+import { Archive, ArchiveRestore, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { ActionMenu, type ActionMenuItem } from '@/components/action-menu'
 import { getApiErrorMessage } from '@/lib/api-client'
 
 import { useRestoreWallet } from '../hooks/use-mutate-wallet'
@@ -16,7 +9,7 @@ import { canArchive } from '../lib/wallet-meta'
 import type { Wallet } from '../types'
 
 /**
- * Per-wallet menu.
+ * Per-wallet menu — an action sheet on a phone, a dropdown on a wider screen.
  *
  * An active wallet can be edited and — only when empty — archived. The
  * archive item stays visible but disabled otherwise, with the reason, so the
@@ -40,52 +33,28 @@ export function WalletActions({
       onError: (error) => toast.error(getApiErrorMessage(error)),
     })
 
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Actions for ${wallet.name}`}
-          />
-        }
-      >
-        <EllipsisVertical />
-      </DropdownMenuTrigger>
+  const items: ActionMenuItem[] = wallet.archived_at
+    ? [
+        {
+          kind: 'action',
+          label: 'Restore',
+          icon: ArchiveRestore,
+          onSelect: restore,
+          disabled: restoreWallet.isPending,
+        },
+      ]
+    : [
+        { kind: 'action', label: 'Edit', icon: Pencil, onSelect: () => onEdit(wallet) },
+        {
+          kind: 'action',
+          label: 'Archive',
+          icon: Archive,
+          destructive: true,
+          disabled: !canArchive(wallet),
+          hint: canArchive(wallet) ? undefined : 'Only empty wallets',
+          onSelect: () => onArchive(wallet),
+        },
+      ]
 
-      <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuGroup>
-          {wallet.archived_at ? (
-            <DropdownMenuItem disabled={restoreWallet.isPending} onClick={restore}>
-              <ArchiveRestore />
-              Restore
-            </DropdownMenuItem>
-          ) : (
-            <>
-              <DropdownMenuItem onClick={() => onEdit(wallet)}>
-                <Pencil />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                variant="destructive"
-                disabled={!canArchive(wallet)}
-                onClick={() => onArchive(wallet)}
-              >
-                <Archive />
-                <span className="flex flex-col">
-                  Archive
-                  {!canArchive(wallet) && (
-                    <span className="text-xs text-muted-foreground">
-                      Only empty wallets
-                    </span>
-                  )}
-                </span>
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
+  return <ActionMenu label={`Actions for ${wallet.name}`} title={wallet.name} items={items} />
 }
