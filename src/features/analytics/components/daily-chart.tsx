@@ -70,7 +70,15 @@ export function DailyChart({ kind, days }: { kind: Kind; days: DayTotal[] }) {
             />
           }
         />
-        <Bar dataKey="total" fill="var(--color-total)" radius={[4, 4, 0, 0]} maxBarSize={24} />
+        {/* No entrance animation: it could leave the bars undrawn (a once-a-year
+            bill showed an empty chart), and the figures are what matter. */}
+        <Bar
+          dataKey="total"
+          fill="var(--color-total)"
+          radius={[4, 4, 0, 0]}
+          maxBarSize={24}
+          isAnimationActive={false}
+        />
       </BarChart>
     </ChartContainer>
   )

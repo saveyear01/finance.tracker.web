@@ -1,134 +1,122 @@
-import { ChartColumn, ChartPie, List } from 'lucide-react'
+import { useState } from 'react'
 
-import { EmptyState } from '@/components/layouts/empty-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useFunds } from '@/features/funds'
+import { TransactionDrawer, type Transaction } from '@/features/transactions'
 import { getApiErrorMessage } from '@/lib/api-client'
-import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
-import { useNoteTotals } from '../hooks/use-analytics'
+import { useNoteTotals, useSummary } from '../hooks/use-analytics'
 import { useAnalyticsKind } from '../hooks/use-analytics-kind'
 import { useAnalyticsRange } from '../hooks/use-analytics-range'
-import { useAnalyticsView, type AnalyticsView } from '../hooks/use-analytics-view'
-import { countOf, KIND_WORDS } from '../lib/kinds'
-import { formatWindow, PRESET_LABELS } from '../lib/ranges'
+import { KIND_WORDS } from '../lib/kinds'
+import { previousRange } from '../lib/ranges'
 import { sharesOf } from '../lib/shares'
 import type { Kind } from '../types'
-import { NotePie } from './note-pie'
-import { NoteRows } from './note-rows'
-import { RangePicker } from './range-picker'
+import { BreakdownCard } from './breakdown-card'
+import { CashFlowCard } from './cash-flow-card'
+import { EmptyPeriod } from './empty-period'
+import { LargestCard } from './largest-card'
+import { PaidFromCard } from './paid-from-card'
+import { PeriodPicker } from './period-picker'
+import { SpendingCalendar } from './spending-calendar'
+import { SummaryHero } from './summary-hero'
 
 /**
- * The Analytics page, a tab each for Expenses and Income: what moved in the
- * window, then by note — the note being an entry's type (decided
- * 2026-11-08). Entries with no note are "Others". A split income is one
- * income, at its full amount.
+ * The Analytics page (redesigned 2026-11-11), a tab each for Expenses and
+ * Income, for one period — a month or year stepped back and forth, or a
+ * custom range:
  *
- * Two views of the same figures, the user's pick: a pie with its legend
- * (the default), or the list of rows with a bar of each share. Either way a
- * note opens its own page, which charts it day by day. Shares are whole
- * percentages that add up to exactly 100 (`wholePercents`, the same rule
- * the wallet and allocation breakdowns use).
+ * 1. the hero: the total, the change against the previous period, and a bar
+ *    for every day;
+ * 2. cash flow: money in against money out by month, and what was kept — the
+ *    one place the two tabs meet;
+ * 3. the breakdown by note (the note being an entry's type, decided
+ *    2026-11-08): a donut and compact rows, the long tail folded;
+ * 4. where it was paid from, by allocation or wallet; for a month, a calendar
+ *    of the days; then the biggest entries.
  *
- * The tab, range and view all live in the URL, so each survives the others
- * changing and a trip to a note's page and back.
+ * An empty period says so and points to the last one with any. The tab and
+ * the period live in the URL, so each survives the other changing and a trip
+ * to a note's page and back.
  */
 export function AnalyticsOverview() {
   const [kind, setKind] = useAnalyticsKind()
   const [range, setRange] = useAnalyticsRange()
-  const [view, setView] = useAnalyticsView()
-  const { data, isLoading, isError, error, isPlaceholderData } = useNoteTotals(
-    kind,
-    range.window,
-  )
+  const [selected, setSelected] = useState<Transaction | null>(null)
 
-  const words = KIND_WORDS[kind]
-  // `keepPreviousData` holds the other tab's figures while this one loads;
-  // they're never shown as this tab's.
-  const current = data?.kind === kind ? data : undefined
+  const totals = useNoteTotals(kind, range.window)
+  const summary = useSummary(kind, range.window)
+  const previous = useNoteTotals(kind, previousRange(range).window)
+  const { funds } = useFunds()
+  const unallocatedName = funds.find((fund) => fund.is_unallocated)?.name ?? null
+
+  // `keepPreviousData` holds the other tab's or period's figures while these
+  // load; they're shown dimmed, never as this period's.
+  const current = totals.data?.kind === kind ? totals.data : undefined
+  const currentSummary = summary.data?.kind === kind ? summary.data : undefined
+  const stale = totals.isPlaceholderData || summary.isPlaceholderData
   const shares = sharesOf(current?.notes ?? [])
+  const error = totals.error ?? summary.error
 
   return (
     <div className="space-y-4">
       <Tabs value={kind} onValueChange={(value) => setKind(value as Kind)}>
-        <TabsList className="h-10! w-full">
+        <TabsList className="w-full">
           <TabsTrigger value="expense">{KIND_WORDS.expense.tab}</TabsTrigger>
           <TabsTrigger value="income">{KIND_WORDS.income.tab}</TabsTrigger>
         </TabsList>
       </Tabs>
 
-      <section className="rounded-2xl bg-secondary p-5 text-secondary-foreground">
-        <p className="text-sm opacity-80">
-          {words.verb} · {range.preset === 'custom' ? 'Custom range' : PRESET_LABELS[range.preset]}
-        </p>
-        <p className="mt-1 figure-lg">
-          {formatMoney(current?.total ?? 0)}
-        </p>
-        <p className="mt-1 text-sm opacity-80">
-          {formatWindow(range.window)}
-          {current && ` · ${countOf(kind, current.count)}`}
-        </p>
-      </section>
+      <PeriodPicker range={range} onChange={setRange} />
 
-      <RangePicker range={range} onChange={setRange} />
+      <div className={cn('space-y-4 transition-opacity', stale && 'opacity-60')} aria-busy={stale || undefined}>
+        <SummaryHero
+          kind={kind}
+          range={range}
+          total={current?.total}
+          count={current?.count}
+          days={currentSummary?.days}
+          previousTotal={previous.data?.kind === kind ? previous.data.total : undefined}
+        />
 
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-semibold">{words.heading}</h2>
-        <Tabs value={view} onValueChange={(value) => setView(value as AnalyticsView)}>
-          {/* Icon-only, so the picked one is filled in primary: a white
-              segment on the muted track is too quiet a cue for an icon. */}
-          <TabsList aria-label="Show as" className="h-9 border border-border">
-            <TabsTrigger
-              value="pie"
-              aria-label="Pie chart"
-              title="Pie chart"
-              className="px-2 data-active:bg-primary! data-active:text-primary-foreground!"
-            >
-              <ChartPie />
-            </TabsTrigger>
-            <TabsTrigger
-              value="list"
-              aria-label="List"
-              title="List"
-              className="px-2 data-active:bg-primary! data-active:text-primary-foreground!"
-            >
-              <List />
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        {error ? (
+          <Alert variant="destructive">
+            <AlertDescription>{getApiErrorMessage(error, 'Could not load these figures.')}</AlertDescription>
+          </Alert>
+        ) : !current || !currentSummary ? (
+          <Skeleton className="h-64 w-full rounded-xl" />
+        ) : (
+          <>
+            <CashFlowCard range={range} onPickMonth={setRange} />
+
+            {shares.length === 0 ? (
+              <EmptyPeriod
+                kind={kind}
+                range={range}
+                lastBefore={currentSummary.last_before}
+                onPick={setRange}
+              />
+            ) : (
+              <>
+                <BreakdownCard kind={kind} shares={shares} range={range} />
+                <PaidFromCard kind={kind} summary={currentSummary} unallocatedName={unallocatedName} />
+                {range.unit === 'month' && <SpendingCalendar kind={kind} days={currentSummary.days} />}
+                <LargestCard kind={kind} entries={currentSummary.largest} onSelect={setSelected} />
+              </>
+            )}
+          </>
+        )}
       </div>
 
-      {isError ? (
-        <Alert variant="destructive">
-          <AlertDescription>
-            {getApiErrorMessage(error, 'Could not load these figures.')}
-          </AlertDescription>
-        </Alert>
-      ) : isLoading || !current ? (
-        <Skeleton className="h-64 w-full rounded-xl" />
-      ) : shares.length === 0 ? (
-        <EmptyState
-          icon={ChartColumn}
-          title={kind === 'income' ? 'Nothing received' : 'Nothing spent'}
-          description={`${words.tab} in this range show up here, grouped by their note.`}
-        />
-      ) : (
-        <div className={cn('space-y-4 transition-opacity', isPlaceholderData && 'opacity-60')}>
-          {view === 'pie' && (
-            <section className="card-surface p-4 text-card-foreground">
-              <NotePie shares={shares} />
-            </section>
-          )}
-          <NoteRows
-            kind={kind}
-            shares={shares}
-            range={range}
-            variant={view === 'pie' ? 'legend' : 'list'}
-          />
-        </div>
-      )}
+      <TransactionDrawer
+        entry={selected}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null)
+        }}
+      />
     </div>
   )
 }

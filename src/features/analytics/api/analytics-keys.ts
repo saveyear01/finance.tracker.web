@@ -13,4 +13,6 @@ export const analyticsKeys = {
     [...analyticsKeys.all, 'totals', { kind, ...window }] as const,
   days: (kind: Kind, note: string | null, window: DateWindow) =>
     [...analyticsKeys.all, 'days', { kind, note, ...window }] as const,
+  summary: (kind: Kind, window: DateWindow) =>
+    [...analyticsKeys.all, 'summary', { kind, ...window }] as const,
 }

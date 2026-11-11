@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
-import { getNoteDays, getNoteTotals } from '../api/analytics-api'
+import { getNoteDays, getNoteTotals, getSummary } from '../api/analytics-api'
 import { analyticsKeys } from '../api/analytics-keys'
 import type { DateWindow, Kind } from '../types'
 
@@ -23,5 +23,18 @@ export function useNoteDays(kind: Kind, note: string | null, window: DateWindow)
     queryKey: analyticsKeys.days(kind, note, window),
     queryFn: () => getNoteDays({ kind, note, ...window }),
     placeholderData: keepPreviousData,
+  })
+}
+
+/**
+ * A window's expenses or income at a glance (per day, paid from, biggest
+ * entries). `enabled` lets a card skip a window it doesn't need yet.
+ */
+export function useSummary(kind: Kind, window: DateWindow, enabled = true) {
+  return useQuery({
+    queryKey: analyticsKeys.summary(kind, window),
+    queryFn: () => getSummary({ kind, ...window }),
+    placeholderData: keepPreviousData,
+    enabled,
   })
 }

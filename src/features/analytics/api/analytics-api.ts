@@ -1,6 +1,6 @@
 import { apiClient, unwrap } from '@/lib/api-client'
 
-import type { DateWindow, Kind, NoteDays, NoteTotals } from '../types'
+import type { DateWindow, Kind, KindSummary, NoteDays, NoteTotals } from '../types'
 
 /**
  * `GET /api/transactions/by-note/` — the window's expenses or income grouped
@@ -25,4 +25,13 @@ export function getNoteDays({
       params: { kind, ...window, ...(note !== null && { note }) },
     }),
   )
+}
+
+/**
+ * `GET /api/transactions/summary/` — a window's expenses or income per day,
+ * by allocation and by wallet, its biggest entries and the last day with any
+ * before it. At most a year, like by-note.
+ */
+export function getSummary({ kind, ...window }: DateWindow & { kind: Kind }): Promise<KindSummary> {
+  return unwrap(apiClient.get<KindSummary>('/transactions/summary/', { params: { kind, ...window } }))
 }

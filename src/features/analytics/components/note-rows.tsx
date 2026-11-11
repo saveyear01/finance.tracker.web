@@ -1,5 +1,5 @@
+import { useState } from 'react'
 import { ChevronRight } from 'lucide-react'
-import { useId } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 import { formatMoney } from '@/lib/money'
@@ -10,103 +10,136 @@ import { noteLabel, notePath, type AnalyticsRange } from '../lib/ranges'
 import { OTHERS_COLOR, type Share } from '../lib/shares'
 import type { Kind } from '../types'
 
-const percentLabel = (share: Share) =>
-  share.percent === 0 && share.cents > 0 ? '<1%' : `${share.percent}%`
+const percentLabel = (percent: number, cents: number) =>
+  percent === 0 && cents > 0 ? '<1%' : `${percent}%`
 
 /**
- * One row per note, each opening that note's own page — the same rows under
- * both views, so a note reads alike whichever is picked.
+ * The notes as compact rows inside one card (redesigned 2026-11-11: one 52px
+ * row per note, not a 74px card each), every row opening that note's page.
+ * The share bar sits under the name, amount and share on the right.
  *
- * As the `list` they carry a bar of their share. As the pie's `legend` they
- * carry their slice's colour instead: the legend is what names the slices,
- * so the pie never asks anyone to match colours from memory, and it is the
- * pie's figures in full for anyone not hovering.
- *
- * The pie's grey "Others" slice can hold more than the "Others" row (entries
- * with no note) — it also takes the notes past the palette. So in the legend
- * those rows sit under their own heading with the slice's share, rather than
- * leaving a grey dot as the only sign of which rows make it up.
+ * The donut's six coloured notes come first. Then the grey slice, under its
+ * own heading with its share, so grey isn't the only thing saying which rows
+ * make it up: the notes past the sixth fold into one "N smaller notes" row
+ * until it's tapped, and the entries with no note ("Others") always come last.
  */
 export function NoteRows({
   kind,
   shares,
   range,
-  variant,
 }: {
   kind: Kind
   shares: Share[]
   range: AnalyticsRange
-  variant: 'list' | 'legend'
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const max = Math.max(1, ...shares.map((share) => share.cents))
+
+  const own = shares.filter((share) => share.color !== OTHERS_COLOR)
+  const smaller = shares.filter((share) => share.color === OTHERS_COLOR && share.note !== null)
+  const noNote = shares.find((share) => share.note === null)
+  const grey = [...smaller, ...(noNote ? [noNote] : [])]
+  const greyPercent = grey.reduce((sum, share) => sum + share.percent, 0)
+  const smallerCents = smaller.reduce((sum, share) => sum + share.cents, 0)
+  const smallerPercent = smaller.reduce((sum, share) => sum + share.percent, 0)
+  const fold = smaller.length > 1 && !expanded
+
+  return (
+    <div className="-mx-4 -mb-4">
+      <ul>
+        {own.map((share) => (
+          <Row key={share.note ?? ''} kind={kind} share={share} range={range} max={max} />
+        ))}
+      </ul>
+
+      {grey.length > 0 && own.length > 0 && (
+        <p className="flex justify-between border-t border-border bg-muted/40 px-4 pt-2.5 pb-1 text-xs font-semibold text-muted-foreground">
+          <span>In the chart's grey slice</span>
+          <span className="tabular-nums">{greyPercent}%</span>
+        </p>
+      )}
+      <ul className={cn(own.length > 0 && 'bg-muted/40')}>
+        {fold ? (
+          <li className="border-t border-border first:border-t-0">
+            <button
+              type="button"
+              onClick={() => setExpanded(true)}
+              className="grid w-full grid-cols-[10px_minmax(0,1fr)_auto_16px] items-center gap-3 px-4 py-2.5 text-left transition-colors outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
+            >
+              <span className="size-2.5 rounded-full" style={{ backgroundColor: OTHERS_COLOR }} aria-hidden="true" />
+              <span className="min-w-0">
+                <span className="block truncate font-semibold">{smaller.length} smaller notes</span>
+                <Track cents={smallerCents} max={max} color={OTHERS_COLOR} />
+              </span>
+              <span className="text-right tabular-nums">
+                <span className="block font-semibold">{formatMoney(smallerCents / 100)}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {percentLabel(smallerPercent, smallerCents)} · show them
+                </span>
+              </span>
+              <ChevronRight className="size-4 rotate-90 text-muted-foreground" aria-hidden="true" />
+            </button>
+          </li>
+        ) : (
+          smaller.map((share) => (
+            <Row key={share.note ?? ''} kind={kind} share={share} range={range} max={max} />
+          ))
+        )}
+        {noNote && <Row kind={kind} share={noNote} range={range} max={max} />}
+      </ul>
+    </div>
+  )
+}
+
+function Row({
+  kind,
+  share,
+  range,
+  max,
+}: {
+  kind: Kind
+  share: Share
+  range: AnalyticsRange
+  max: number
 }) {
   const { pathname, search } = useLocation()
-  const total = shares.reduce((sum, share) => sum + share.cents, 0)
-  const headingId = useId()
-
-  const row = (share: Share) => (
-    <li key={share.note ?? ''}>
+  return (
+    <li className="border-t border-border">
       <Link
         to={notePath(kind, share.note, range)}
         state={{ from: `${pathname}${search}` }}
-        className="card-row flex items-center gap-3 p-3 text-card-foreground"
+        className="grid grid-cols-[10px_minmax(0,1fr)_auto_16px] items-center gap-3 px-4 py-2.5 transition-colors outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
       >
-        {variant === 'legend' && (
-          <span
-            className="size-3 shrink-0 rounded-full ring-1 ring-foreground/15 ring-inset"
-            style={{ backgroundColor: share.color }}
-            aria-hidden="true"
-          />
-        )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-3">
-            <p className={cn('truncate font-medium', share.note === null && 'italic')}>
-              {noteLabel(share.note)}
-            </p>
-            <span className="shrink-0 font-semibold tabular-nums">{formatMoney(share.total)}</span>
-          </div>
-          {variant === 'list' && (
-            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-              <div
-                className="h-full rounded-full bg-primary"
-                style={{ width: `${total > 0 ? (share.cents / total) * 100 : 0}%` }}
-              />
-            </div>
-          )}
-          <p className="mt-1 flex justify-between text-xs text-muted-foreground">
-            <span>{countOf(kind, share.count)}</span>
-            <span className="tabular-nums">{percentLabel(share)}</span>
-          </p>
-        </div>
-        <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <span
+          className="size-2.5 rounded-full ring-1 ring-foreground/15 ring-inset"
+          style={{ backgroundColor: share.color }}
+          aria-hidden="true"
+        />
+        <span className="min-w-0">
+          <span className={cn('block truncate font-semibold', share.note === null && 'font-medium italic')}>
+            {noteLabel(share.note)}
+          </span>
+          <Track cents={share.cents} max={max} color={share.color} />
+        </span>
+        <span className="text-right tabular-nums">
+          <span className="block font-semibold">{formatMoney(share.total)}</span>
+          <span className="block text-xs text-muted-foreground">
+            {countOf(kind, share.count)} · {percentLabel(share.percent, share.cents)}
+          </span>
+        </span>
+        <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
       </Link>
     </li>
   )
+}
 
-  const own = variant === 'legend' ? shares.filter((share) => share.color !== OTHERS_COLOR) : shares
-  const folded = variant === 'legend' ? shares.filter((share) => share.color === OTHERS_COLOR) : []
-  // Only worth a heading when the slice is more than the one "Others" row.
-  const grouped = folded.length > 1 || folded.some((share) => share.note !== null)
-  const foldedPercent = folded.reduce((sum, share) => sum + share.percent, 0)
-
+function Track({ cents, max, color }: { cents: number; max: number; color: string }) {
   return (
-    <div className="space-y-2">
-      <ul className="space-y-2">
-        {own.map(row)}
-        {!grouped && folded.map(row)}
-      </ul>
-      {grouped && (
-        <>
-          <p
-            id={headingId}
-            className="flex justify-between px-1 pt-2 text-xs font-semibold text-muted-foreground"
-          >
-            <span>In the chart's Others slice</span>
-            <span className="tabular-nums">{foldedPercent}%</span>
-          </p>
-          <ul className="space-y-2" aria-labelledby={headingId}>
-            {folded.map(row)}
-          </ul>
-        </>
-      )}
-    </div>
+    <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+      <span
+        className="block h-full rounded-full"
+        style={{ width: `${(cents / max) * 100}%`, backgroundColor: color }}
+      />
+    </span>
   )
 }

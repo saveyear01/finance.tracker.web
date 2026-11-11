@@ -1,11 +1,11 @@
 import { useSearchParams } from 'react-router-dom'
 
-import { rangeFromParams, rangeParams, type AnalyticsRange } from '../lib/ranges'
+import { RANGE_PARAM_KEYS, rangeFromParams, rangeParams, type AnalyticsRange } from '../lib/ranges'
 
 /**
- * The range the Analytics pages read, held in the URL (see `rangeFromParams`).
- * Other params on the page — the tab, the note — are kept when it changes, and the
- * history entry is replaced: picking a range isn't navigating.
+ * The period the Analytics pages read, held in the URL (see `rangeFromParams`).
+ * Other params on the page — the tab, the note — are kept when it changes, and
+ * the history entry is replaced: stepping through months isn't navigating.
  */
 export function useAnalyticsRange(): [AnalyticsRange, (range: AnalyticsRange) => void] {
   const [params, setParams] = useSearchParams()
@@ -13,7 +13,7 @@ export function useAnalyticsRange(): [AnalyticsRange, (range: AnalyticsRange) =>
 
   const setRange = (next: AnalyticsRange) => {
     const kept = new URLSearchParams(params)
-    for (const key of ['range', 'from', 'to']) kept.delete(key)
+    for (const key of RANGE_PARAM_KEYS) kept.delete(key)
     for (const [key, value] of Object.entries(rangeParams(next))) kept.set(key, value)
     setParams(kept, { replace: true })
   }

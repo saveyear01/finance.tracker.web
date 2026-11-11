@@ -37,3 +37,23 @@ export type NoteDays = DateWindow & {
   /** The entries behind the days, newest first — one per leg. */
   entries: Transaction[]
 }
+
+/** What one allocation or wallet put into a period's expenses or income. */
+export type SourceTotal = { id: string; name: string; total: string; count: number }
+
+/**
+ * `GET /api/transactions/summary/` — a period's expenses or income at a
+ * glance: every day's total, where it was paid from (or landed in), the
+ * biggest entries, and the newest day with any before the period.
+ */
+export type KindSummary = DateWindow & {
+  kind: Kind
+  total: string
+  count: number
+  days: DayTotal[]
+  by_fund: SourceTotal[]
+  by_wallet: SourceTotal[]
+  /** At most 5 legs, largest first. */
+  largest: Transaction[]
+  last_before: string | null
+}
