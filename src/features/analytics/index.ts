@@ -4,6 +4,7 @@
  * outside `features/analytics` should import from its subfolders directly.
  */
 export { AnalyticsOverview } from './components/analytics-overview'
+export { MonthSoFar } from './components/month-so-far'
 export { NoteDays } from './components/note-days'
 export { analyticsKeys } from './api/analytics-keys'
 export { kindFromParams } from './lib/kinds'

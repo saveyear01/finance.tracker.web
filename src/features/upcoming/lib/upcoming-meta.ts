@@ -83,21 +83,28 @@ const centsOf = (amount: string) => Math.round(Number(amount) * 100)
 
 /**
  * A month's figures, in integer cents: what's still to pay (what's left of
- * every owed bill, overdue included), what was paid (partial payments too),
- * and how many are owed / overdue.
+ * every owed bill, overdue included — `overdueCents` of it already late),
+ * what was paid (partial payments too), and how many are owed / overdue /
+ * paid in full.
  */
 export function summarize(occurrences: Occurrence[], today: string) {
   let toPayCents = 0
+  let overdueCents = 0
   let paidCents = 0
   let unpaid = 0
   let overdue = 0
+  let paid = 0
   for (const occurrence of occurrences) {
     paidCents += centsOf(occurrence.paid)
+    if (occurrence.status === 'paid') paid += 1
     if (isOwed(occurrence)) {
       toPayCents += centsOf(occurrence.remaining)
       unpaid += 1
-      if (occurrence.due_date < today) overdue += 1
+      if (occurrence.due_date < today) {
+        overdue += 1
+        overdueCents += centsOf(occurrence.remaining)
+      }
     }
   }
-  return { toPayCents, paidCents, unpaid, overdue }
+  return { toPayCents, overdueCents, paidCents, unpaid, overdue, paid }
 }

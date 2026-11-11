@@ -7,11 +7,10 @@
  * none of them imports anything from here.
  */
 export { DeleteUpcomingDrawer } from './components/delete-upcoming-drawer'
+export { DueThisMonth } from './components/due-this-month'
 export { PayDrawer } from './components/pay-drawer'
-export { PinnedExpenses } from './components/pinned-expenses'
 export { UpcomingDetail } from './components/upcoming-detail'
 export { UpcomingDrawer } from './components/upcoming-drawer'
-export { UpcomingSummary } from './components/upcoming-summary'
 export { UpcomingTabs } from './components/upcoming-tabs'
 export { upcomingKeys } from './api/upcoming-keys'
 export type { Occurrence, UpcomingExpense } from './types'

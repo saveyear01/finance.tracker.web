@@ -1,24 +1,29 @@
 import { useState } from 'react'
-import { ChevronRight } from 'lucide-react'
-import { Link } from 'react-router-dom'
 
 import { PageIntro } from '@/components/layouts/page-intro'
+import { MonthSoFar } from '@/features/analytics'
 import { useCurrentUser } from '@/features/auth'
+import { OverdrawnNotice, useFunds } from '@/features/funds'
 import { ActionDrawer, BalanceCard, type LedgerAction } from '@/features/transactions'
-import { useFunds } from '@/features/funds'
-import { PinnedExpenses, UpcomingSummary } from '@/features/upcoming'
+import { DueThisMonth } from '@/features/upcoming'
 
 /**
- * Home, after the design reference: the balance card with its quick actions,
- * the upcoming expenses still to pay this month, then the pinned expenses —
- * the bills pinned for quick access, each as the due date to pay next. (It
- * replaced Recent activity on 2026-09-24: the activity has its own page, and
- * what Home is for is getting to the next thing to pay.)
+ * Home (redesigned 2026-11-11 from an audit, mockup in
+ * `design/home-redesign.html`), what's needed to get to the next thing to
+ * pay:
  *
- * Laid out as a screen, not a document (it is in `SCREEN_PAGES`): the card
- * stays put and only the pinned list scrolls, in whatever height is left.
- * The section keeps a 12rem floor, so on a viewport too short for that the
- * shell scrolls the whole page instead of squeezing the list to nothing.
+ * 1. the balance card and its quick actions, with what the allocations left
+ *    out of the total hold;
+ * 2. a notice, only while an allocation is below zero;
+ * 3. Due this month — what's left to pay, overdue split out, set against the
+ *    balance, and the pinned bills (the Upcoming row and the Pinned list,
+ *    merged);
+ * 4. the month so far — in, out and kept — the way in to Analytics.
+ *
+ * Recent activity stays off (2026-09-24: it has its own page). An ordinary
+ * page that scrolls as a whole — no longer a fixed screen with an inner
+ * scrolling list, which hid under the nav pill on a small phone. From `lg`,
+ * two columns: money on the left, bills on the right.
  *
  * The total is summed in integer cents from the allocations that COUNT
  * (`in_total`, toggled from each allocation's menu — decided 2026-09-24), so
@@ -32,49 +37,43 @@ export function HomeRoute() {
   // The action being recorded doubles as the drawer's open state.
   const [action, setAction] = useState<LedgerAction | null>(null)
 
+  const centsOf = (amount: string) => Math.round(Number(amount) * 100)
   const counted = funds.filter((fund) => fund.in_total)
-  const cents = counted.reduce((sum, fund) => sum + Math.round(Number(fund.balance) * 100), 0)
+  const cents = counted.reduce((sum, fund) => sum + centsOf(fund.balance), 0)
+  const setAsideCents = funds
+    .filter((fund) => !fund.in_total)
+    .reduce((sum, fund) => sum + centsOf(fund.balance), 0)
 
   return (
-    // `min-h-0` matters: a flex item's default minimum is its content height,
-    // which would grow this to the whole list and leave nothing to scroll.
-    <div className="mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col gap-5">
+    <div className="mx-auto w-full max-w-xl space-y-4 lg:max-w-5xl">
       {/* Desktop only: the mobile header already greets by name. */}
-      <div className="hidden shrink-0 lg:block">
+      <div className="hidden lg:block">
         <PageIntro>{user ? `Welcome back, ${user.first_name}.` : 'Welcome back.'}</PageIntro>
       </div>
 
-      <div className="shrink-0">
-        <BalanceCard
-          total={(cents / 100).toFixed(2)}
-          counted={counted.length}
-          allocationCount={funds.length}
-          onAction={setAction}
-        />
-      </div>
-
-      {/* The way in to Upcoming — it has no icon in the mobile pill. */}
-      <div className="shrink-0">
-        <UpcomingSummary />
-      </div>
-
-      <section className="flex min-h-48 flex-1 flex-col gap-3">
-        <div className="flex shrink-0 items-center justify-between">
-          <h2 className="font-semibold">Pinned expenses</h2>
-          <Link
-            to="/upcoming"
-            className="flex items-center gap-0.5 text-sm font-medium text-primary hover:underline"
-          >
-            See all
-            <ChevronRight className="size-4" aria-hidden="true" />
-          </Link>
+      {/* One column on a phone, in reading order. From `lg`, the bills take
+          the right-hand column across every row; the last row soaks up the
+          difference so the left-hand cards never spread apart. */}
+      <div className="grid items-start gap-4 lg:grid-cols-2 lg:grid-rows-[auto_auto_1fr] lg:gap-6">
+        <div className="lg:col-start-1">
+          <BalanceCard
+            total={(cents / 100).toFixed(2)}
+            counted={counted.length}
+            allocationCount={funds.length}
+            setAsideCents={setAsideCents}
+            onAction={setAction}
+          />
         </div>
-        {/* The only part of Home that scrolls. `overscroll-contain` stops a
-            flick at the list's end from scrolling anything behind it. */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <PinnedExpenses />
+        <div className="empty:hidden lg:col-start-1">
+          <OverdrawnNotice funds={funds} />
         </div>
-      </section>
+        <div className="lg:col-start-2 lg:row-span-3 lg:row-start-1">
+          <DueThisMonth balanceCents={cents} setAsideCents={setAsideCents} />
+        </div>
+        <div className="lg:col-start-1">
+          <MonthSoFar />
+        </div>
+      </div>
 
       <ActionDrawer
         action={action}
