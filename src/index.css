@@ -46,6 +46,9 @@
   /* The dark card: the balance card and other heroes (`bg-secondary`). */
   --secondary: #11302c;
   --secondary-foreground: #f1f6f4;
+  /* An accent ON the dark card (a highlighted word, a figure): the logo's
+     mint. Teal --primary drops to 2.6:1 there; this is 8.1:1. */
+  --secondary-accent: #6ad6c9;
   /* A real tinted grey — tracks, hovers, skeletons — a step off the card. */
   --muted: #ebebe6;
   --muted-foreground: #5c6966;
@@ -118,6 +121,7 @@
   --primary-foreground: #04201d;
   --secondary: #17332f;
   --secondary-foreground: #f1f6f4;
+  --secondary-accent: #6ad6c9;
   --muted: #1c2624;
   --muted-foreground: #94a39f;
   --accent: #14322e;
@@ -165,6 +169,7 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-accent: var(--secondary-accent);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);

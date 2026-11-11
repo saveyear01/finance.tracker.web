@@ -36,12 +36,12 @@ export function AuthLayout({
       >
         <div className="pointer-events-none absolute -top-24 -right-16 size-96 rounded-full bg-primary/15 blur-3xl" />
 
-        <Logo className="relative" wordmarkClassName="text-secondary-foreground" />
+        <Logo className="relative" wordmarkClassName="text-secondary-foreground" onDark />
 
         <div className="relative max-w-md space-y-4">
           <h2 className="text-4xl leading-tight font-semibold tracking-tight">
             Know where your money is,{' '}
-            <span className="whitespace-nowrap text-primary">
+            <span className="whitespace-nowrap text-secondary-accent">
               and what it's for.
             </span>
           </h2>
