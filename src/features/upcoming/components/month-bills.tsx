@@ -103,14 +103,14 @@ export function MonthBills({
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl border border-border bg-card p-3">
+        <div className="card-surface p-3">
           <p className="text-xs text-muted-foreground">
             To pay{unpaid > 0 && ` · ${unpaid}`}
             {overdue > 0 && <span className="text-destructive"> · {overdue} overdue</span>}
           </p>
           <p className="text-lg font-semibold tabular-nums">{formatMoney(toPayCents / 100)}</p>
         </div>
-        <div className="rounded-xl border border-border bg-card p-3">
+        <div className="card-surface p-3">
           <p className="text-xs text-muted-foreground">Paid</p>
           <p className="text-lg font-semibold text-success tabular-nums">
             {formatMoney(paidCents / 100)}

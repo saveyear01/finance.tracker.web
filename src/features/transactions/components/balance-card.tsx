@@ -50,7 +50,7 @@ export function BalanceCard({
       </div>
 
       <div className="px-5 pt-4 pb-5">
-        <p className="text-4xl font-semibold tracking-tight tabular-nums">
+        <p className="figure-xl">
           {whole}
           <span className="text-secondary-foreground/50">{cents}</span>
         </p>

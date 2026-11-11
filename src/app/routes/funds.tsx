@@ -42,7 +42,7 @@ export function FundsRoute() {
           Total across {plural(wallets.length, 'wallet', 'wallets')} ·{' '}
           {plural(funds.length, 'allocation', 'allocations')}
         </p>
-        <p className="text-3xl font-semibold tabular-nums">
+        <p className="figure-lg">
           {isLoading ? '…' : formatMoney(cents / 100)}
         </p>
       </div>

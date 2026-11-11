@@ -8,9 +8,9 @@ import { cn } from '@/lib/utils'
  * edge, after the design reference. Hidden from `lg` up, where the sidebar
  * takes over.
  *
- * The pill is drawn in `foreground` with `background`-coloured icons rather
- * than hard-coded black and white, so it reads as black-on-light today and
- * would invert rather than vanish if a dark theme came back.
+ * The pill has its own tokens (`--nav` / `--nav-foreground`): ink on the
+ * light page, and in dark mode a raised dark tone with a border — it stays
+ * a dark pill rather than flipping to a white one.
  *
  * Icon-only, so each link carries its label for screen readers (`aria-label`)
  * and pointer users (`title`). NavLink sets `aria-current="page"` itself.
@@ -25,7 +25,7 @@ export function MobileTabBar() {
       // Clear of the iOS home indicator, then a gap so the pill floats.
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
     >
-      <ul className="pointer-events-auto flex items-center gap-2 rounded-full bg-foreground p-1.5">
+      <ul className="pointer-events-auto flex items-center gap-2 rounded-full bg-nav p-1.5 dark:border dark:border-border">
         {NAV_ITEMS.filter((item) => item.inPill !== false).map(({ label, to, icon: Icon, end }) => (
           <li key={to}>
             <NavLink
@@ -35,10 +35,10 @@ export function MobileTabBar() {
               title={label}
               className={({ isActive }) =>
                 cn(
-                  'grid size-12 place-items-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-background/60',
+                  'grid size-12 place-items-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-nav-foreground/60',
                   isActive
-                    ? 'bg-background/15 text-background'
-                    : 'text-background/55 hover:text-background',
+                    ? 'bg-nav-foreground/15 text-nav-foreground'
+                    : 'text-nav-foreground/60 hover:text-nav-foreground',
                 )
               }
             >

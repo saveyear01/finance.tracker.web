@@ -52,7 +52,7 @@ export function DebtRow({ debt }: { debt: Debt }) {
       <Link
         to={`/debts/${debt.id}`}
         className={cn(
-          'flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-card-foreground transition-colors outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50',
+          'flex items-center gap-3 card-row p-3 text-card-foreground',
           !open && 'opacity-70',
         )}
       >

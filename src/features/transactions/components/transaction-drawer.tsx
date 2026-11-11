@@ -145,7 +145,7 @@ export function TransactionDrawer({
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 pt-0">
                 <p
                   className={cn(
-                    'text-center text-3xl font-semibold tabular-nums',
+                    'text-center figure-lg',
                     reversed
                       ? 'text-muted-foreground line-through'
                       : signed && (cents > 0 ? 'text-success' : 'text-destructive'),
@@ -155,7 +155,7 @@ export function TransactionDrawer({
                   {formatMoney(Math.abs(cents) / 100)}
                 </p>
 
-                <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+                <ul className="divide-y divide-border card-surface">
                   {legs.map((leg) => (
                     <li key={leg.id} className="flex items-center gap-3 px-3 py-2.5">
                       <div className="min-w-0 flex-1">

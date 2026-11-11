@@ -184,7 +184,7 @@ export function UpcomingDetail({
       {/* The date leads — what an upcoming expense IS, is a day it falls due
           — and the figure it comes to sits under it, so the page has one
           thing to look at rather than three small boxes of equal weight. */}
-      <section className="overflow-hidden rounded-xl border border-border bg-card text-card-foreground">
+      <section className="overflow-hidden card-surface text-card-foreground">
         <div className="flex items-center gap-4 p-4">
           <div
             className={cn(
@@ -254,7 +254,7 @@ export function UpcomingDetail({
           </p>
           <p
             className={cn(
-              'mt-0.5 text-3xl font-semibold tracking-tight tabular-nums',
+              'mt-0.5 figure-lg',
               overCents > 0 && 'text-destructive',
             )}
           >
@@ -330,7 +330,7 @@ export function UpcomingDetail({
       </div>
 
       {expense.note && (
-        <p className="rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
+        <p className="card-surface p-3 text-sm text-muted-foreground">
           {expense.note}
         </p>
       )}

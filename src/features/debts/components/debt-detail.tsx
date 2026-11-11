@@ -111,7 +111,7 @@ export function DebtDetail({
 
         <div className="px-5 pt-4 pb-5">
           <p className="text-lg font-medium">{debt.name}</p>
-          <p className="mt-1 text-4xl font-semibold tracking-tight tabular-nums">
+          <p className="mt-1 figure-xl">
             {formatMoney(open ? debt.remaining : debt.paid)}
           </p>
 
@@ -154,7 +154,7 @@ export function DebtDetail({
         </div>
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-4 text-card-foreground">
+      <section className="card-surface p-4 text-card-foreground">
         <h2 className="mb-1 font-semibold">The numbers</h2>
         <div className="divide-y divide-border">
           <Figure
@@ -193,7 +193,7 @@ export function DebtDetail({
             {debt.charges.map((charge) => (
               <li
                 key={charge.id}
-                className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-card-foreground"
+                className="flex items-center gap-3 card-surface p-3 text-card-foreground"
               >
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
                   <CirclePlus className="size-4" aria-hidden="true" />
@@ -226,7 +226,7 @@ export function DebtDetail({
             {[...debt.payments].reverse().map((payment) => (
               <li
                 key={payment.group_id}
-                className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-card-foreground"
+                className="flex items-center gap-3 card-surface p-3 text-card-foreground"
               >
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-success/10 text-success">
                   <Wallet className="size-4" aria-hidden="true" />

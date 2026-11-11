@@ -40,7 +40,7 @@ export function DebtList({ onAdd }: { onAdd: () => void }) {
     <div className="space-y-4">
       <section className="rounded-2xl bg-secondary p-5 text-secondary-foreground">
         <p className="text-sm opacity-80">Still to pay</p>
-        <p className="mt-1 text-3xl font-semibold tabular-nums">
+        <p className="mt-1 figure-lg">
           {formatMoney(remainingCents / 100)}
         </p>
         <p className="mt-1 text-sm opacity-80">

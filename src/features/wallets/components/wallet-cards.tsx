@@ -47,7 +47,7 @@ export function WalletCards({ wallets, onEdit, onArchive }: Props) {
             onOpenChange={(open) => setOpenId(open ? wallet.id : null)}
             render={<li />}
             className={cn(
-              'rounded-xl border border-border bg-card text-card-foreground',
+              'card-surface text-card-foreground',
               archived && 'opacity-60',
             )}
           >

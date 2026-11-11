@@ -51,7 +51,7 @@ export function NameForm() {
     <form
       onSubmit={onSubmit}
       noValidate
-      className="space-y-4 rounded-xl border border-border bg-card p-4"
+      className="space-y-4 card-surface p-4"
     >
       <div>
         <h2 className="font-semibold">Personal details</h2>

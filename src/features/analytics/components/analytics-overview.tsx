@@ -63,7 +63,7 @@ export function AnalyticsOverview() {
         <p className="text-sm opacity-80">
           {words.verb} · {range.preset === 'custom' ? 'Custom range' : PRESET_LABELS[range.preset]}
         </p>
-        <p className="mt-1 text-3xl font-semibold tabular-nums">
+        <p className="mt-1 figure-lg">
           {formatMoney(current?.total ?? 0)}
         </p>
         <p className="mt-1 text-sm opacity-80">
@@ -77,8 +77,8 @@ export function AnalyticsOverview() {
       <div className="flex items-center justify-between gap-3">
         <h2 className="font-semibold">{words.heading}</h2>
         <Tabs value={view} onValueChange={(value) => setView(value as AnalyticsView)}>
-          {/* Icon-only, so the picked one is filled in primary: the theme's
-              muted and background are a shade apart and wouldn't show it. */}
+          {/* Icon-only, so the picked one is filled in primary: a white
+              segment on the muted track is too quiet a cue for an icon. */}
           <TabsList aria-label="Show as" className="h-9 border border-border">
             <TabsTrigger
               value="pie"
@@ -117,7 +117,7 @@ export function AnalyticsOverview() {
       ) : (
         <div className={cn('space-y-4 transition-opacity', isPlaceholderData && 'opacity-60')}>
           {view === 'pie' && (
-            <section className="rounded-xl border border-border bg-card p-4 text-card-foreground">
+            <section className="card-surface p-4 text-card-foreground">
               <NotePie shares={shares} />
             </section>
           )}

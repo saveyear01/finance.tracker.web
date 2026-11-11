@@ -70,7 +70,7 @@ export function TransactionRow({
   )
 
   const card =
-    'flex w-full items-center gap-3 rounded-xl border border-border bg-card p-3 text-left text-card-foreground'
+    'flex w-full items-center gap-3 card-surface p-3 text-left text-card-foreground'
 
   return (
     <li>

@@ -527,7 +527,7 @@ export function ActionDrawer({
                 </div>
 
                 {action === 'income' && (
-                  <label className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                  <label className="flex items-center gap-3 card-surface p-3">
                     <span className="flex-1">
                       <span className="block text-sm font-medium">Auto-allocate</span>
                       <span className="block text-xs text-muted-foreground">

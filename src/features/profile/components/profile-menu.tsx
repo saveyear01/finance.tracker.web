@@ -42,7 +42,7 @@ export function ProfileMenu() {
 
   return (
     <>
-      <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+      <ul className="divide-y divide-border overflow-hidden card-surface">
         <li>
           <Link to="/profile/settings" className={ROW}>
             <RowIcon icon={UserRound} />
@@ -86,7 +86,7 @@ export function ProfileMenu() {
         </li>
       </ul>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="overflow-hidden card-surface">
         <button
           type="button"
           className={`${ROW} text-destructive`}

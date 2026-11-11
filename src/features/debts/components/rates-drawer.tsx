@@ -154,7 +154,7 @@ export function RatesDrawer({
                     <li
                       key={rate.id}
                       className={cn(
-                        'flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-card-foreground',
+                        'flex items-center gap-3 card-surface p-3 text-card-foreground',
                         editing?.id === rate.id && 'ring-2 ring-ring/50',
                       )}
                     >

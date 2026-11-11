@@ -28,7 +28,7 @@ export function UpcomingSummary() {
   return (
     <Link
       to="/upcoming"
-      className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-card-foreground transition-colors outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="flex items-center gap-3 card-row p-3 text-card-foreground"
     >
       <span className="grid size-10 shrink-0 place-items-center rounded-full bg-muted">
         <CalendarClock className="size-4 text-muted-foreground" aria-hidden="true" />

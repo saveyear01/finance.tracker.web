@@ -136,7 +136,7 @@ export function AllocationEditor() {
         aria-live="polite"
       >
         <p className="text-sm text-secondary-foreground/70">Total</p>
-        <p className="text-4xl font-semibold tabular-nums">{total}%</p>
+        <p className="figure-xl">{total}%</p>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary-foreground/15">
           <div
             className={cn(
@@ -191,7 +191,7 @@ export function AllocationEditor() {
             return (
               <li
                 key={field.id}
-                className="rounded-xl border border-border bg-card p-3 text-card-foreground"
+                className="card-surface p-3 text-card-foreground"
               >
                 <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">

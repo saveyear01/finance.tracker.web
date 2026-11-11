@@ -11,7 +11,7 @@ import { queryClient } from '@/lib/query-client'
  * `--background` for each theme, as hex. The browser chrome colour cannot
  * read a CSS variable, so these duplicate index.css — keep them in step.
  */
-const BROWSER_CHROME = { light: '#fcfcfc', dark: '#000000' } as const
+const BROWSER_CHROME = { light: '#f5f5f2', dark: '#0a100f' } as const
 
 /**
  * Point `<meta name="theme-color">` at the active theme, so the mobile status

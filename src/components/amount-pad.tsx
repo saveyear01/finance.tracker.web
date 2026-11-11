@@ -85,7 +85,7 @@ export function AmountPad({
     >
       <p
         className={cn(
-          'text-center text-4xl font-semibold tabular-nums',
+          'text-center figure-xl',
           value === '' && 'text-muted-foreground',
           invalid && 'text-destructive',
         )}
@@ -95,7 +95,7 @@ export function AmountPad({
       </p>
       {hint && <div className="mt-1 text-center text-sm text-muted-foreground">{hint}</div>}
 
-      <div className="mt-3 grid grid-cols-3 gap-1">
+      <div className="mt-3 grid grid-cols-3 gap-2">
         {KEYS.map((key) => (
           <button
             key={key}
@@ -103,9 +103,9 @@ export function AmountPad({
             tabIndex={-1}
             aria-label={key === 'back' ? 'Delete last digit' : key === '.' ? 'Decimal point' : key}
             onClick={() => onChange(pressKey(value, key))}
-            className="grid h-12 place-items-center rounded-xl text-xl font-medium transition-colors hover:bg-accent active:bg-accent"
+            className="grid h-12 place-items-center rounded-xl bg-muted text-xl font-semibold tabular-nums transition-colors hover:bg-accent active:bg-accent active:text-accent-foreground"
           >
-            {key === 'back' ? <Delete className="size-5 text-destructive" /> : key}
+            {key === 'back' ? <Delete className="size-5 text-muted-foreground" /> : key}
           </button>
         ))}
       </div>

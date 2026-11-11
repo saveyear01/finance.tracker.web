@@ -46,7 +46,7 @@ export function FundCards({ funds, onEdit, onArchive }: Props) {
             onOpenChange={(open) => setOpenId(open ? fund.id : null)}
             render={<li />}
             className={cn(
-              'rounded-xl border border-border bg-card text-card-foreground',
+              'card-surface text-card-foreground',
               archived && 'opacity-60',
             )}
           >

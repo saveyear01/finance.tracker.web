@@ -81,7 +81,7 @@ export function UpcomingRow({
         to={`/upcoming/${expense.id}/${occurrence.due_date}`}
         state={{ from: `${pathname}${search}` }}
         className={cn(
-          'flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-card-foreground transition-colors outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50',
+          'flex items-center gap-3 card-row p-3 text-card-foreground',
           status === 'skipped' && 'opacity-70',
         )}
       >

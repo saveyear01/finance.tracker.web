@@ -22,8 +22,8 @@ export default defineConfig({
           'Track where your money sits and what it is for, across every wallet.',
         // Matches the light background (--background) so the Android status
         // bar and the splash screen don't flash a different colour on launch.
-        theme_color: '#fcfcfc',
-        background_color: '#fcfcfc',
+        theme_color: '#f5f5f2',
+        background_color: '#f5f5f2',
         display: 'standalone',
         scope: '/',
         start_url: '/',

@@ -76,7 +76,7 @@ export function NoteDays({ kind, note }: { kind: Kind; note: string | null }) {
         <p className="truncate text-sm opacity-80">
           {words.tab} · <span className={cn(note === null && 'italic')}>{noteLabel(data?.note ?? note)}</span>
         </p>
-        <p className="mt-1 text-3xl font-semibold tabular-nums">{formatMoney(data?.total ?? 0)}</p>
+        <p className="mt-1 figure-lg">{formatMoney(data?.total ?? 0)}</p>
         <p className="mt-1 text-sm opacity-80">
           {formatWindow(range.window)}
           {data && ` · ${countOf(kind, data.count)}`}
@@ -95,7 +95,7 @@ export function NoteDays({ kind, note }: { kind: Kind; note: string | null }) {
         <Skeleton className="h-72 w-full rounded-xl" />
       ) : (
         <div className={cn('space-y-4 transition-opacity', isPlaceholderData && 'opacity-60')}>
-          <section className="space-y-3 rounded-xl border border-border bg-card p-4 text-card-foreground">
+          <section className="space-y-3 card-surface p-4 text-card-foreground">
             <h2 className="text-sm font-semibold">
               {words.verb} per {stats.monthly ? 'month' : 'day'}
             </h2>

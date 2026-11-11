@@ -24,137 +24,134 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Theme: "calm fintech" (2026-11-11) ──────────────────────────────────
+   A soft warm-grey page, white cards, a deep teal primary and an ink-teal
+   for dark cards. Flat on purpose: no shadows — layers are told apart by
+   tone (page → card) and a 1px border, never by depth.
+
+   Every text pairing is checked at >= 4.5:1 in both modes: foreground and
+   muted-foreground on background, card and muted; primary, success and
+   destructive as text on background and card; each *-foreground on its
+   own fill. Dark mode is its own set of steps, not a flip: the dark card
+   (`secondary`) and the nav pill stay dark, raised a tone above the page. */
 :root {
-  --background: oklch(0.9911 0 0);
-  --foreground: oklch(0.1994 0.0470 270.6494);
-  --card: oklch(0.9851 0 0);
-  --card-foreground: oklch(0.1994 0.0470 270.6494);
-  --popover: oklch(1.0000 0 0);
-  --popover-foreground: oklch(0.1994 0.0470 270.6494);
-  --primary: oklch(0.5729 0.2337 264.3664);
-  --primary-foreground: oklch(1.0000 0 0);
-  --secondary: oklch(0.1994 0.0470 270.6494);
-  --secondary-foreground: oklch(1.0000 0 0);
-  --muted: oklch(1.0000 0 0);
-  --muted-foreground: oklch(0.1994 0.0470 270.6494);
-  --accent: oklch(1.0000 0 0);
-  --accent-foreground: oklch(0.5729 0.2337 264.3664);
-  --destructive: oklch(0.7058 0.1918 39.5760);
-  --destructive-foreground: oklch(1.0000 0 0);
-  --border: oklch(0.9212 0.0033 17.2170);
-  --input: oklch(0.8452 0 0);
-  --ring: oklch(0.5784 0.2303 263.8862);
-  --chart-1: oklch(0.5729 0.2337 264.3664);
-  --chart-2: oklch(0.7677 0.1312 194.1427);
-  --chart-3: oklch(0.9649 0.1962 111.4216);
-  --chart-4: oklch(0.8439 0.1679 169.5646);
-  --chart-5: oklch(0.6411 0.2446 28.5713);
-  /* Categorical series for charts that tell notes apart (the Analytics pie),
-     added 2026-11-08 beside the theme's own chart tokens: seven hues in a
-     fixed order, validated adjacent-pair for colour-blind separation on this
-     card, plus a neutral grey reserved for "Others". */
+  --background: #f5f5f2;
+  --foreground: #14201e;
+  --card: #ffffff;
+  --card-foreground: #14201e;
+  --popover: #ffffff;
+  --popover-foreground: #14201e;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  /* The dark card: the balance card and other heroes (`bg-secondary`). */
+  --secondary: #11302c;
+  --secondary-foreground: #f1f6f4;
+  /* A real tinted grey — tracks, hovers, skeletons — a step off the card. */
+  --muted: #ebebe6;
+  --muted-foreground: #5c6966;
+  --accent: #e3f1ee;
+  --accent-foreground: #0b5d56;
+  --destructive: #c2362d;
+  --destructive-foreground: #ffffff;
+  /* Money in, the counterpart of --destructive for money out. */
+  --success: #15803d;
+  --border: #e2e2dc;
+  --input: #c5c7bf;
+  --ring: #0f766e;
+  /* The floating mobile nav pill. */
+  --nav: #14201e;
+  --nav-foreground: #ffffff;
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  /* Categorical series for charts that tell notes apart (the Analytics
+     donut): six hues in a fixed order plus a receding grey for "Others".
+     Run through the dataviz validator on this card (2026-11-11) for EVERY
+     neighbour a donut can produce — consecutive slices, the last slice
+     against "Others" and against slot 1 where the ring closes: worst
+     colour-blind ΔE 9.1, worst normal-vision ΔE 17.0. A seventh hue
+     (violet) is left out on purpose: next to slot 1's blue at the ring's
+     close it fails both floors. */
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --series-3: #1baf7a;
   --series-4: #eda100;
   --series-5: #e87ba4;
   --series-6: #008300;
-  --series-7: #6250d6;
-  --series-other: #8f8f8a;
-  --sidebar: oklch(0.9851 0 0);
-  --sidebar-foreground: oklch(0.1994 0.0470 270.6494);
-  --sidebar-primary: oklch(0.5729 0.2337 264.3664);
-  --sidebar-primary-foreground: oklch(1.0000 0 0);
-  --sidebar-accent: oklch(1.0000 0 0);
-  --sidebar-accent-foreground: oklch(0.5729 0.2337 264.3664);
-  --sidebar-border: oklch(1.0000 0 0);
-  --sidebar-ring: oklch(0.5784 0.2303 263.8862);
+  --series-other: #c8c8c4;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #14201e;
+  --sidebar-primary: #0f766e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e3f1ee;
+  --sidebar-accent-foreground: #0b5d56;
+  --sidebar-border: #e2e2dc;
+  --sidebar-ring: #0f766e;
   --font-sans: Open Sans, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: .8rem;
-  --shadow-x: -50px;
-  --shadow-y: 2px;
-  --shadow-blur: 0px;
-  --shadow-spread: -50px;
-  --shadow-opacity: 0;
-  --shadow-color: #2e6aff;
-  --shadow-2xs: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow-xs: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow-sm: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00), -50px 1px 2px -51px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00), -50px 1px 2px -51px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow-md: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00), -50px 2px 4px -51px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow-lg: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00), -50px 4px 6px -51px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow-xl: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00), -50px 8px 10px -51px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow-2xl: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00);
+  /* Cards (rounded-xl) land on 18px, controls (rounded-lg) on 14px. */
+  --radius: 0.875rem;
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow: 0 0 #0000;
+  --shadow-md: 0 0 #0000;
+  --shadow-lg: 0 0 #0000;
+  --shadow-xl: 0 0 #0000;
+  --shadow-2xl: 0 0 #0000;
   --tracking-normal: 0em;
   --spacing: 0.25rem;
-  /* Added alongside the user's theme (not one of its values): green for money
-     coming in, the counterpart of --destructive for money going out. */
-  --success: oklch(0.5946 0.1467 149.5793);
 }
 
 .dark {
-  --background: oklch(0 0 0);
-  --foreground: oklch(1.0000 0 0);
-  --card: oklch(0.1684 0 0);
-  --card-foreground: oklch(0.8853 0 0);
-  --popover: oklch(0 0 0);
-  --popover-foreground: oklch(1.0000 0 0);
-  --primary: oklch(0.5683 0.2366 264.2478);
-  --primary-foreground: oklch(1.0000 0 0);
-  --secondary: oklch(1.0000 0 0);
-  --secondary-foreground: oklch(0.1994 0.0470 270.6494);
-  --muted: oklch(0.2090 0 0);
-  --muted-foreground: oklch(0.5953 0.0215 276.1101);
-  --accent: oklch(0.1880 0.0868 261.9799);
-  --accent-foreground: oklch(0.5683 0.2366 264.2478);
-  --destructive: oklch(0.7058 0.1918 39.5760);
-  --destructive-foreground: oklch(1.0000 0 0);
-  --border: oklch(0.2746 0.0130 279.0717);
-  --input: oklch(0.2697 0.0888 269.7716);
-  --ring: oklch(0.5784 0.2303 263.8862);
-  --chart-1: oklch(0.5729 0.2337 264.3664);
-  --chart-2: oklch(0.7677 0.1312 194.1427);
-  --chart-3: oklch(0.9649 0.1962 111.4216);
-  --chart-4: oklch(0.8439 0.1679 169.5646);
-  --chart-5: oklch(0.6411 0.2446 28.5713);
-  /* The same seven hues stepped for the dark card, not a flip. */
+  --background: #0a100f;
+  --foreground: #e9efed;
+  --card: #131b1a;
+  --card-foreground: #e9efed;
+  --popover: #18211f;
+  --popover-foreground: #e9efed;
+  /* Lifted for the dark page, so it carries dark text, not white. */
+  --primary: #2bb3a5;
+  --primary-foreground: #04201d;
+  --secondary: #17332f;
+  --secondary-foreground: #f1f6f4;
+  --muted: #1c2624;
+  --muted-foreground: #94a39f;
+  --accent: #14322e;
+  --accent-foreground: #6ad6c9;
+  --destructive: #f2766c;
+  --destructive-foreground: #2b0b08;
+  --success: #45c97e;
+  --border: #25302e;
+  --input: #3a4744;
+  --ring: #2bb3a5;
+  --nav: #1c2624;
+  --nav-foreground: #e9efed;
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  /* The same six hues stepped for the dark card (worst colour-blind ΔE 8.4,
+     normal-vision 19.3 over the same neighbour list), and a dim grey. */
   --series-1: #3987e5;
   --series-2: #d95926;
   --series-3: #199e70;
   --series-4: #c98500;
   --series-5: #d55181;
   --series-6: #008300;
-  --series-7: #9085e9;
-  --series-other: #7c7c78;
-  --sidebar: oklch(0.1684 0 0);
-  --sidebar-foreground: oklch(0.8853 0 0);
-  --sidebar-primary: oklch(0.5784 0.2303 263.8862);
-  --sidebar-primary-foreground: oklch(1.0000 0 0);
-  --sidebar-accent: oklch(0.1880 0.0868 261.9799);
-  --sidebar-accent-foreground: oklch(0.5683 0.2366 264.2478);
-  --sidebar-border: oklch(0.3706 0.0642 269.1117);
-  --sidebar-ring: oklch(0.5784 0.2303 263.8862);
-  --font-sans: Open Sans, sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: Menlo, monospace;
-  --radius: .8rem;
-  --shadow-x: -50px;
-  --shadow-y: 2px;
-  --shadow-blur: 0px;
-  --shadow-spread: -50px;
-  --shadow-opacity: 0;
-  --shadow-color: #2e6aff;
-  --shadow-2xs: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow-xs: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow-sm: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00), -50px 1px 2px -51px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00), -50px 1px 2px -51px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow-md: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00), -50px 2px 4px -51px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow-lg: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00), -50px 4px 6px -51px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow-xl: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00), -50px 8px 10px -51px hsl(222.7751 100% 59.0196% / 0.00);
-  --shadow-2xl: -50px 2px 0px -50px hsl(222.7751 100% 59.0196% / 0.00);
-  --success: oklch(0.7729 0.1535 163.2231);
+  --series-other: #50504c;
+  --sidebar: #131b1a;
+  --sidebar-foreground: #e9efed;
+  --sidebar-primary: #2bb3a5;
+  --sidebar-primary-foreground: #04201d;
+  --sidebar-accent: #14322e;
+  --sidebar-accent-foreground: #6ad6c9;
+  --sidebar-border: #25302e;
+  --sidebar-ring: #2bb3a5;
 }
 
 @theme inline {
@@ -178,6 +175,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-nav: var(--nav);
+  --color-nav-foreground: var(--nav-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -240,4 +239,32 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Money as figures: the two sizes a headline amount comes in. Tabular
+   lining digits so columns of amounts line up and a changing total doesn't
+   jitter; tightened tracking because Open Sans runs wide at display size. */
+@utility figure-xl {
+  font-size: 2.5rem;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+@utility figure-lg {
+  font-size: 1.875rem;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* The app's one card shape — the rounded list cards and panels every
+   screen is built from. `card-row` is the tappable version (a list row that
+   opens its own page). Text colour is left to the caller. */
+@utility card-surface {
+  @apply rounded-xl border border-border bg-card;
+}
+@utility card-row {
+  @apply rounded-xl border border-border bg-card transition-colors outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50;
 }
