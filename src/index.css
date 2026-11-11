@@ -250,7 +250,9 @@
    lining digits so columns of amounts line up and a changing total doesn't
    jitter; tightened tracking because Open Sans runs wide at display size. */
 @utility figure-xl {
-  font-size: 2.5rem;
+  /* 40px, easing down to 32px on the narrowest phones so a six-figure
+     balance still fits its card. */
+  font-size: clamp(2rem, 11vw, 2.5rem);
   line-height: 1.1;
   font-weight: 600;
   letter-spacing: -0.025em;

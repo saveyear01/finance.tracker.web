@@ -54,8 +54,11 @@ export function HomeRoute() {
       {/* One column on a phone, in reading order. From `lg`, the bills take
           the right-hand column across every row; the last row soaks up the
           difference so the left-hand cards never spread apart. */}
-      <div className="grid items-start gap-4 lg:grid-cols-2 lg:grid-rows-[auto_auto_1fr] lg:gap-6">
-        <div className="lg:col-start-1">
+      {/* `grid-cols-1` is `minmax(0, 1fr)`: an implicit `auto` column grows to
+          its widest card's content, which pushed every card past the edge of
+          a phone under ~370px. */}
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 lg:grid-rows-[auto_auto_1fr] lg:gap-6">
+        <div className="min-w-0 lg:col-start-1">
           <BalanceCard
             total={(cents / 100).toFixed(2)}
             counted={counted.length}
@@ -64,13 +67,13 @@ export function HomeRoute() {
             onAction={setAction}
           />
         </div>
-        <div className="empty:hidden lg:col-start-1">
+        <div className="min-w-0 empty:hidden lg:col-start-1">
           <OverdrawnNotice funds={funds} />
         </div>
-        <div className="lg:col-start-2 lg:row-span-3 lg:row-start-1">
+        <div className="min-w-0 lg:col-start-2 lg:row-span-3 lg:row-start-1">
           <DueThisMonth balanceCents={cents} setAsideCents={setAsideCents} />
         </div>
-        <div className="lg:col-start-1">
+        <div className="min-w-0 lg:col-start-1">
           <MonthSoFar />
         </div>
       </div>

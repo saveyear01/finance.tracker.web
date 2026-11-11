@@ -25,7 +25,9 @@ export function MobileTabBar() {
       // Clear of the iOS home indicator, then a gap so the pill floats.
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
     >
-      <ul className="pointer-events-auto flex items-center gap-2 rounded-full bg-nav p-1.5 dark:border dark:border-border">
+      {/* Six 48px buttons need 340px; below 380px they drop to 44px (still a
+          full touch target) with tighter gaps, so the pill fits a 320px phone. */}
+      <ul className="pointer-events-auto flex items-center gap-0.5 rounded-full bg-nav p-1.5 min-[380px]:gap-2 dark:border dark:border-border">
         {NAV_ITEMS.filter((item) => item.inPill !== false).map(({ label, to, icon: Icon, end }) => (
           <li key={to}>
             <NavLink
@@ -35,7 +37,7 @@ export function MobileTabBar() {
               title={label}
               className={({ isActive }) =>
                 cn(
-                  'grid size-12 place-items-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-nav-foreground/60',
+                  'grid size-11 place-items-center rounded-full min-[380px]:size-12 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-nav-foreground/60',
                   isActive
                     ? 'bg-nav-foreground/15 text-nav-foreground'
                     : 'text-nav-foreground/60 hover:text-nav-foreground',
