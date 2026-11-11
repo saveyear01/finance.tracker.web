@@ -43,36 +43,48 @@ export function PeriodPicker({
   const today = localToday()
   const [customOpen, setCustomOpen] = useState(false)
   const forward = canStepForward(range, today)
-  const label = rangeLabel(range)
 
   return (
-    <div className="flex items-center gap-2">
-      <SegmentedControl
-        label="Period"
-        className="h-10 w-28 shrink-0"
-        value={range.unit === 'custom' ? ('' as 'month') : range.unit}
-        onChange={(unit) => onChange(withUnit(range, unit, today))}
-        options={[
-          { value: 'month', label: 'Month' },
-          { value: 'year', label: 'Year' },
-        ]}
-      />
+    // Two rows: on a phone, three controls side by side left the period's
+    // name a few letters wide.
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <SegmentedControl
+          label="Period"
+          className="h-10 min-w-0 flex-1"
+          value={range.unit === 'custom' ? ('' as 'month') : range.unit}
+          onChange={(unit) => onChange(withUnit(range, unit, today))}
+          options={[
+            { value: 'month', label: 'Month' },
+            { value: 'year', label: 'Year' },
+          ]}
+        />
+        <Button
+          variant="outline"
+          className={cn('h-10 shrink-0 rounded-xl px-3', range.unit === 'custom' && 'border-primary text-primary')}
+          aria-pressed={range.unit === 'custom'}
+          onClick={() => setCustomOpen(true)}
+        >
+          <CalendarRange />
+          Pick dates
+        </Button>
+      </div>
 
-      <div className="flex h-10 min-w-0 flex-1 items-center justify-between rounded-xl border border-border bg-card px-1">
+      <div className="flex h-11 items-center justify-between rounded-xl border border-border bg-card px-1">
         <Button
           variant="ghost"
-          size="icon-sm"
+          size="icon"
           aria-label={`Previous ${range.unit === 'custom' ? 'range' : range.unit}`}
           onClick={() => onChange(stepRange(range, -1))}
         >
           <ChevronLeft />
         </Button>
         <span className="min-w-0 truncate px-1 text-sm font-semibold" aria-live="polite">
-          {label}
+          {rangeLabel(range)}
         </span>
         <Button
           variant="ghost"
-          size="icon-sm"
+          size="icon"
           aria-label={`Next ${range.unit === 'custom' ? 'range' : range.unit}`}
           disabled={!forward}
           onClick={() => onChange(stepRange(range, 1))}
@@ -80,17 +92,6 @@ export function PeriodPicker({
           <ChevronRight />
         </Button>
       </div>
-
-      <Button
-        variant="outline"
-        size="icon"
-        className={cn('size-10 shrink-0 rounded-xl', range.unit === 'custom' && 'border-primary text-primary')}
-        aria-label="Pick dates"
-        aria-pressed={range.unit === 'custom'}
-        onClick={() => setCustomOpen(true)}
-      >
-        <CalendarRange />
-      </Button>
 
       <CustomRangeDrawer
         open={customOpen}
@@ -138,29 +139,31 @@ function CustomRangeDrawer({
           <DrawerTitle>Pick dates</DrawerTitle>
           <DrawerDescription>Any stretch of up to a year.</DrawerDescription>
         </DrawerHeader>
-        <div className="grid grid-cols-2 gap-3 p-4">
-          <div className="space-y-1.5">
+        <div className="grid gap-3 p-4 sm:grid-cols-2">
+          <div className="min-w-0 space-y-1.5">
             <p className="text-sm font-medium" aria-hidden="true">
               From
             </p>
             <DatePicker
               label="From"
+              compact
               value={window.start}
               onChange={(start) => setWindow({ start, end: start > window.end ? start : window.end })}
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="min-w-0 space-y-1.5">
             <p className="text-sm font-medium" aria-hidden="true">
               To
             </p>
             <DatePicker
               label="To"
+              compact
               value={window.end}
               onChange={(end) => setWindow({ start: end < window.start ? end : window.start, end })}
             />
           </div>
           {tooLong && (
-            <p className="col-span-2 text-sm text-destructive">
+            <p className="text-sm text-destructive sm:col-span-2">
               That's longer than a year. Pick a shorter range.
             </p>
           )}
