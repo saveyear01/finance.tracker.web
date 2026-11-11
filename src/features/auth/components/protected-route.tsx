@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 
 import { SplashScreen } from '@/components/splash-screen'
+import { bootIsShowing } from '@/lib/boot'
 
 import { useCurrentUser } from '../hooks/use-current-user'
 
@@ -14,9 +15,10 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useCurrentUser()
   const location = useLocation()
 
-  // The launch screen carries on until the session is known, so opening the
-  // app goes straight from the phone's splash to the first page.
-  if (isLoading) return <SplashScreen label="Checking your session…" />
+  // On launch the animated launch screen (#boot) is still covering this, and
+  // plays out once the session is known. A later check — after the launch
+  // screen has gone — gets the still version of it.
+  if (isLoading) return bootIsShowing() ? null : <SplashScreen label="Checking your session…" />
 
   if (!isAuthenticated) {
     return (

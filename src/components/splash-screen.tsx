@@ -1,10 +1,9 @@
 /**
- * The launch screen, drawn by the app while it gets ready (the session
- * check). It is the same screen the phone shows first — the iOS launch image,
- * Android's manifest splash and the HTML shell in index.html: the page
- * background with the mark centred at 96px — so opening the app reads as one
- * screen rather than three. Keep the mark's size in step with
- * `SPLASH_MARK` in brand/generate-icons.mjs and `.boot-mark` in index.html.
+ * The still launch screen — the page background with the mark centred at
+ * 96px, as the iOS launch image draws it — for a session check that happens
+ * after the animated launch screen (#boot in index.html) has gone. Keep the
+ * mark's size in step with `SPLASH_MARK` in brand/generate-icons.mjs and
+ * `--u` in index.html.
  */
 export function SplashScreen({ label }: { label: string }) {
   return (

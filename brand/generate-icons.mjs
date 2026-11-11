@@ -43,7 +43,7 @@ console.log('favicon.svg')
 // ── iOS launch screens ──────────────────────────────────────────────────────
 
 /** The mark's size on every launch screen, in CSS px. Keep in step with
- *  `.boot-mark` in index.html and `SplashScreen`. */
+ *  `#boot` (--u) in index.html and `SplashScreen`. */
 const SPLASH_MARK = 96
 
 /** --background in index.css, per theme. */

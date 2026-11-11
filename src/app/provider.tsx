@@ -5,6 +5,8 @@ import { ThemeProvider, useTheme } from 'next-themes'
 
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { useCurrentUser } from '@/features/auth'
+import { dismissBoot } from '@/lib/boot'
 import { queryClient } from '@/lib/query-client'
 
 /**
@@ -12,6 +14,18 @@ import { queryClient } from '@/lib/query-client'
  * read a CSS variable, so these duplicate index.css — keep them in step.
  */
 const BROWSER_CHROME = { light: '#f5f5f2', dark: '#0a100f' } as const
+
+/**
+ * Plays the launch screen out once the session check has answered — signed
+ * in or not, or failed — since that is when the app knows its first page.
+ */
+function BootDismisser() {
+  const { isLoading } = useCurrentUser()
+  useEffect(() => {
+    if (!isLoading) dismissBoot()
+  }, [isLoading])
+  return null
+}
 
 /**
  * Point `<meta name="theme-color">` at the active theme, so the mobile status
@@ -46,6 +60,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     >
       <ThemeColorMeta />
       <QueryClientProvider client={queryClient}>
+        <BootDismisser />
         {/* The sidebar's collapsed-state tooltips need this ancestor. */}
         <TooltipProvider>{children}</TooltipProvider>
         <Toaster richColors position="top-right" />
