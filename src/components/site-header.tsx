@@ -47,6 +47,9 @@ function BackButton({ to, className }: { to: string; className?: string }) {
       size="icon"
       aria-label="Back"
       className={className}
+      // A link, not a button: say so, or Base UI warns and adds button
+      // semantics to an <a>.
+      nativeButton={false}
       render={<Link to={to} />}
     >
       <ChevronLeft />
