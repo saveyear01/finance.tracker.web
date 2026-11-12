@@ -13,6 +13,7 @@ import { FundsWalletDetailRoute } from './routes/funds-wallet-detail'
 import { HomeRoute } from './routes/home'
 import { LoginRoute } from './routes/login'
 import { ProfileRoute } from './routes/profile'
+import { ProfileExportRoute } from './routes/profile-export'
 import { ProfileIncomeSplitRoute } from './routes/profile-income-split'
 import { ProfileSettingsRoute } from './routes/profile-settings'
 import { TransactionsRoute } from './routes/transactions'
@@ -52,6 +53,7 @@ export function AppRouter() {
           <Route path="/profile" element={<ProfileRoute />} />
           <Route path="/profile/settings" element={<ProfileSettingsRoute />} />
           <Route path="/profile/income-split" element={<ProfileIncomeSplitRoute />} />
+          <Route path="/profile/export" element={<ProfileExportRoute />} />
           <Route
             path="/profile/allocation"
             element={<Navigate to="/profile/income-split" replace />}

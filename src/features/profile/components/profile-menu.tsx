@@ -1,4 +1,4 @@
-import { ChartPie, ChevronRight, Loader2, LogOut, Moon, UserRound } from 'lucide-react'
+import { ChartPie, ChevronRight, Download, Loader2, LogOut, Moon, UserRound } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -59,6 +59,18 @@ export function ProfileMenu() {
             <span className="flex-1">
               <span className="block font-medium">Income split</span>
               <span className="block text-sm text-muted-foreground">{allocationSummary}</span>
+            </span>
+            <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+          </Link>
+        </li>
+        <li>
+          <Link to="/profile/export" className={ROW}>
+            <RowIcon icon={Download} />
+            <span className="flex-1">
+              <span className="block font-medium">Export data</span>
+              <span className="block text-sm text-muted-foreground">
+                Download your entries as a spreadsheet
+              </span>
             </span>
             <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
           </Link>
