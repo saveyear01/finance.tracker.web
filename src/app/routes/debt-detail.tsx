@@ -9,6 +9,7 @@ import {
   PayDebtDrawer,
   RatesDrawer,
   type Debt,
+  type DebtCharge,
 } from '@/features/debts'
 
 /**
@@ -24,7 +25,10 @@ export function DebtDetailRoute() {
   const [editing, setEditing] = useState<Debt | null>(null)
   // Each doubles as its drawer's open state.
   const [paying, setPaying] = useState<Debt | null>(null)
-  const [charging, setCharging] = useState<Debt | null>(null)
+  // A charge is added (charge: null) or, opened from History, edited.
+  const [charging, setCharging] = useState<{ debt: Debt; charge: DebtCharge | null } | null>(
+    null,
+  )
   const [rating, setRating] = useState<Debt | null>(null)
   const [deleting, setDeleting] = useState<Debt | null>(null)
 
@@ -33,7 +37,8 @@ export function DebtDetailRoute() {
       <DebtDetail
         id={debtId}
         onPay={setPaying}
-        onCharge={setCharging}
+        onCharge={(debt) => setCharging({ debt, charge: null })}
+        onEditCharge={(debt, charge) => setCharging({ debt, charge })}
         onRates={setRating}
         onEdit={setEditing}
         onDelete={setDeleting}
@@ -53,7 +58,8 @@ export function DebtDetailRoute() {
         }}
       />
       <ChargeDrawer
-        debt={charging}
+        debt={charging?.debt ?? null}
+        charge={charging?.charge ?? null}
         onOpenChange={(open) => {
           if (!open) setCharging(null)
         }}

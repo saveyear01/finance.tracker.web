@@ -30,6 +30,22 @@ export type DebtPayment = {
   paid_on: string
 }
 
+/**
+ * Where a debt with a term stands against it (`DebtSchedule`). A payment is
+ * due monthly on the day it started, the first a month in. At most one of
+ * `behind` / `ahead` is above "0.00".
+ */
+export type DebtSchedule = {
+  /** Due dates up to and including today, out of `tenure_months`. */
+  due_count: number
+  due_so_far: string
+  behind: string
+  ahead: string
+  /** Null once the term has run out or the debt is paid off. */
+  next_due: string | null
+  ends_on: string
+}
+
 /** A debt and where it stands (`DebtRead`). */
 export type Debt = {
   id: string
@@ -46,6 +62,8 @@ export type Debt = {
   rate_kind: RateKind
   note: string | null
   created_at: string
+  /** The household's priority, 0 first. Paid-off debts keep theirs. */
+  position: number
 
   status: DebtStatus
   /** Principal + interest + charges: what the debt comes to in total. */
@@ -63,6 +81,8 @@ export type Debt = {
   monthly_payment: string | null
   /** The MONTHLY rate in force today, or null on an interest-free debt. */
   current_rate: string | null
+  /** Against the term; null on an open-ended debt. */
+  schedule: DebtSchedule | null
   /** Oldest first — the rate history. */
   rates: DebtRate[]
   /** Newest first. */

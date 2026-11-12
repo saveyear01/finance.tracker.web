@@ -1,99 +1,98 @@
-import { ChevronRight, CircleCheck, Landmark } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Check, ChevronRight } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
 
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
-import { formatRate, progressOf, RATE_KIND_BADGES } from '../lib/debt-meta'
+import { formatRate, monthlyCost, progressOf, RATE_KIND_BADGES, standingOf } from '../lib/debt-meta'
 import type { Debt } from '../types'
 
+const TONES = {
+  bad: 'font-semibold text-destructive',
+  good: 'font-semibold text-success',
+  neutral: '',
+} as const
+
 /**
- * One debt in the list: its name and lender, what's left of it, and how far
- * through you are. A paid-off one stays, muted and ticked, since clearing a
- * debt is worth seeing.
+ * One debt in the list. An open one leads with its RANK — the household's
+ * priority, which is what the list is ordered by — then who and at what
+ * rate, what's left, and a bar of how far through it you are.
  *
- * The whole row opens the debt's own page — everything you can DO to a debt
- * lives there, so the list stays a list and reads at a glance on a phone.
+ * Under the bar, every row says the same two things in the same places, so
+ * the list scans down: what a month of it costs, and where it stands
+ * ("19 payments behind", "On track", "No end date"). Both wrap rather than
+ * truncate — on a phone, the half that gets cut is the half you needed.
  *
- * The amount shown is what's LEFT — the principal never changes as you pay,
- * and anything charged since is folded into what's owed, so the line under
- * the bar says how the two relate. Who and at what rate goes above the bar,
- * how much is paid below: together on one line they truncate on a phone, and
- * what goes first is the half that matters.
+ * A paid-off one is ticked and shows what was paid; no strike-through,
+ * which reads as cancelled rather than cleared.
  */
-export function DebtRow({ debt }: { debt: Debt }) {
+export function DebtRow({ debt, rank }: { debt: Debt; rank: number | null }) {
+  const { pathname } = useLocation()
   const open = debt.status === 'open'
-  const Icon = open ? Landmark : CircleCheck
   const progress = progressOf(debt)
   const rate = formatRate(debt.current_rate)
   const badge = RATE_KIND_BADGES[debt.rate_kind]
+  const cost = monthlyCost(debt)
+  const standing = standingOf(debt)
   const charged = Number(debt.charged) > 0
 
-  // Short enough to survive a narrow screen: who, and on what terms. The
-  // term is left to the line below — three of these truncate on a phone, and
-  // the one that gets cut is the one the reader needs.
-  const detail =
-    [debt.lender, rate && (badge ? `${rate} ${badge.toLowerCase()}` : rate)]
-      .filter(Boolean)
-      .join(' · ') || (open ? 'Open' : 'Paid off')
-  // Under the bar: what a month costs, which is the number you act on. The
-  // term that produced it is on the debt's own page — on a phone this line
-  // fits one figure, and this is the one. Without a schedule there is nothing
-  // to be due, so the figures the bar is drawing go there instead.
-  const progressLabel = !open
-    ? `${formatMoney(debt.paid)} paid off`
-    : debt.monthly_payment
-      ? `${formatMoney(debt.monthly_payment)} a month`
-      : `${formatMoney(debt.paid)} of ${formatMoney(debt.owed)} paid` +
-        (charged ? ` · ${formatMoney(debt.charged)} added` : '')
+  const detail = [debt.lender, rate && (badge ? `${rate} ${badge.toLowerCase()}` : rate)]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
-    <li>
+    <li className="border-border not-first:border-t">
       <Link
         to={`/debts/${debt.id}`}
-        className={cn(
-          'flex items-center gap-3 card-row p-3 text-card-foreground',
-          !open && 'opacity-70',
-        )}
+        state={{ from: pathname }}
+        className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto_1rem] items-center gap-x-3 gap-y-1 px-4 py-3 transition-colors outline-none hover:bg-muted/60 focus-visible:bg-muted/60"
       >
         <span
           className={cn(
-            'grid size-10 shrink-0 place-items-center rounded-full',
-            open ? 'bg-muted text-muted-foreground' : 'bg-success/10 text-success',
+            'grid size-7 place-items-center rounded-full text-xs font-bold tabular-nums',
+            open ? 'bg-muted text-foreground' : 'bg-success/10 text-success',
           )}
+          aria-label={open && rank !== null ? `Priority ${rank}` : 'Paid off'}
         >
-          <Icon className="size-4" aria-hidden="true" />
+          {open && rank !== null ? rank : <Check className="size-3.5" aria-hidden="true" />}
         </span>
 
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{debt.name}</p>
-          <p className="truncate text-xs text-muted-foreground">{detail}</p>
-          {open && (
-            <>
-              <div
-                className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted"
-                role="progressbar"
-                aria-valuenow={progress}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label={`${debt.name} paid off`}
-              >
-                <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
-              </div>
-              <p className="mt-1 truncate text-xs text-muted-foreground">{progressLabel}</p>
-            </>
-          )}
+        <div className="min-w-0">
+          <p className="font-medium break-words">{debt.name}</p>
+          {detail && <p className="text-xs text-muted-foreground">{detail}</p>}
         </div>
 
-        <span
-          className={cn(
-            'shrink-0 font-semibold tabular-nums',
-            !open && 'text-muted-foreground line-through',
-          )}
-        >
+        <p className="text-right font-semibold tabular-nums">
           {formatMoney(open ? debt.remaining : debt.paid)}
-        </span>
-        <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span className="block text-xs font-medium text-muted-foreground">
+            {open ? `${progress}% paid` : 'paid off'}
+          </span>
+        </p>
+        <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+
+        {open && (
+          <>
+            <div
+              className="col-span-2 col-start-2 h-1.5 overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`${debt.name} paid off`}
+            >
+              <div className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
+            </div>
+            <p className="col-span-2 col-start-2 flex flex-wrap gap-x-2.5 text-xs text-muted-foreground">
+              {cost && (
+                <span>
+                  {formatMoney(cost.amount)} {cost.label}
+                </span>
+              )}
+              <span className={TONES[standing.tone]}>{standing.label}</span>
+              {charged && !debt.schedule && <span>{formatMoney(debt.charged)} added</span>}
+            </p>
+          </>
+        )}
       </Link>
     </li>
   )

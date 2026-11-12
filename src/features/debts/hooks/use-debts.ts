@@ -14,11 +14,13 @@ import {
   getDebt,
   listDebts,
   payDebt,
+  reorderDebts,
   updateCharge,
   updateDebt,
   updateRate,
 } from '../api/debts-api'
 import { debtKeys } from '../api/debt-keys'
+import type { Debt } from '../types'
 
 /** Every debt, still-owed ones first. */
 export function useDebts() {
@@ -46,6 +48,42 @@ export function useDebt(id: string | undefined) {
 function useInvalidateDebts() {
   const queryClient = useQueryClient()
   return () => queryClient.invalidateQueries({ queryKey: debtKeys.all })
+}
+
+/**
+ * Set the priority order. Optimistic: the list takes the new order at once,
+ * so a dropped row doesn't jump back while the request is out, and goes back
+ * to the old one if it fails. `debtIds` names every debt (see `reorderDebts`).
+ */
+export function useReorderDebts() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: reorderDebts,
+    onMutate: async (debtIds: string[]) => {
+      await queryClient.cancelQueries({ queryKey: debtKeys.list() })
+      const previous = queryClient.getQueryData<Debt[]>(debtKeys.list())
+      if (previous) {
+        const rank = new Map(debtIds.map((id, index) => [id, index]))
+        queryClient.setQueryData<Debt[]>(
+          debtKeys.list(),
+          previous
+            .map((debt) => ({ ...debt, position: rank.get(debt.id) ?? debt.position }))
+            .sort(
+              (a, b) =>
+                Number(a.status === 'paid_off') - Number(b.status === 'paid_off') ||
+                a.position - b.position,
+            ),
+        )
+      }
+      return { previous }
+    },
+    onError: (_error, _ids, context) => {
+      if (context?.previous) queryClient.setQueryData(debtKeys.list(), context.previous)
+    },
+    onSuccess: (debts) => queryClient.setQueryData(debtKeys.list(), debts),
+    // Each debt's own page shows its rank too.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: debtKeys.all }),
+  })
 }
 
 export function useCreateDebt() {
