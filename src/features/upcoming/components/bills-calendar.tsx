@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
 import { monthTitle, shortDate, statusOf, whenText, type RowStatus } from '../lib/upcoming-meta'
@@ -20,6 +21,15 @@ const CHIP_TONE: Record<RowStatus, string> = {
   due: 'bg-muted text-foreground',
   skipped: 'bg-muted text-muted-foreground line-through',
 }
+
+/**
+ * Every day keeps one height however many bills fall on it (2026-11-13, the
+ * user's call): up to two chips, else one and "+N more", which lists the
+ * day in a popover. What needs acting on sorts first, so the hidden ones are
+ * never the late ones.
+ */
+const MAX_CHIPS = 2
+const URGENCY: Record<RowStatus, number> = { overdue: 0, partial: 1, due: 2, paid: 3, skipped: 4 }
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -90,12 +100,16 @@ export function BillsCalendar({
           <span key={`lead-${index}`} aria-hidden="true" />
         ))}
         {days.map((date) => {
-          const bills = byDay.get(date) ?? []
+          const bills = [...(byDay.get(date) ?? [])].sort(
+            (a, b) => URGENCY[statusOf(a, today)] - URGENCY[statusOf(b, today)],
+          )
+          const shown = bills.length > MAX_CHIPS ? bills.slice(0, MAX_CHIPS - 1) : bills
+          const hidden = bills.length - shown.length
           return (
             <div
               key={date}
               className={cn(
-                'grid min-h-16 min-w-0 content-start gap-0.75 rounded-lg border border-border bg-background px-1.5 py-1.5',
+                'grid h-20 min-w-0 content-start gap-0.75 overflow-hidden rounded-lg border border-border bg-background px-1.5 py-1.5',
                 date === today && 'border-primary ring-1 ring-primary ring-inset',
               )}
             >
@@ -108,29 +122,80 @@ export function BillsCalendar({
               >
                 {Number(date.slice(8))}
               </span>
-              {bills.map((occurrence) => {
-                const status = statusOf(occurrence, today)
-                const label = `${occurrence.expense.name}, ${shortDate(date)}: ${whenText(occurrence, today)}`
-                return (
-                  <Link
-                    key={occurrence.expense.id}
-                    to={`/upcoming/${occurrence.expense.id}/${occurrence.due_date}`}
-                    state={{ from: `${pathname}${search}` }}
-                    aria-label={label}
-                    title={label}
-                    className={cn(
-                      'block truncate rounded-[5px] px-1.25 py-px text-[10.5px] font-semibold transition-opacity outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring',
-                      CHIP_TONE[status],
-                    )}
+              {shown.map((occurrence) => (
+                <BillChip
+                  key={occurrence.expense.id}
+                  occurrence={occurrence}
+                  date={date}
+                  today={today}
+                  from={`${pathname}${search}`}
+                />
+              ))}
+              {hidden > 0 && (
+                <Popover>
+                  <PopoverTrigger
+                    className="block truncate rounded-[5px] bg-muted px-1.25 py-px text-left text-[10.5px] font-semibold text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={`${hidden} more on ${shortDate(date)}`}
                   >
-                    {occurrence.expense.name}
-                  </Link>
-                )
-              })}
+                    +{hidden} more
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-2" align="start">
+                    <p className="px-1 pb-1.5 text-xs font-semibold text-muted-foreground">
+                      {shortDate(date)} · {bills.length} bills
+                    </p>
+                    <div className="grid gap-1">
+                      {bills.map((occurrence) => (
+                        <BillChip
+                          key={occurrence.expense.id}
+                          occurrence={occurrence}
+                          date={date}
+                          today={today}
+                          from={`${pathname}${search}`}
+                          roomy
+                        />
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
           )
         })}
       </div>
     </section>
+  )
+}
+
+/** One bill on its day: its name, coloured by where it stands, opening its page. */
+function BillChip({
+  occurrence,
+  date,
+  today,
+  from,
+  roomy = false,
+}: {
+  occurrence: Occurrence
+  date: string
+  today: string
+  from: string
+  /** In the "+N more" list: a little more room to read and tap. */
+  roomy?: boolean
+}) {
+  const status = statusOf(occurrence, today)
+  const label = `${occurrence.expense.name}, ${shortDate(date)}: ${whenText(occurrence, today)}`
+  return (
+    <Link
+      to={`/upcoming/${occurrence.expense.id}/${occurrence.due_date}`}
+      state={{ from }}
+      aria-label={label}
+      title={label}
+      className={cn(
+        'block truncate rounded-[5px] font-semibold transition-opacity outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring',
+        roomy ? 'px-2 py-1 text-xs' : 'px-1.25 py-px text-[10.5px]',
+        CHIP_TONE[status],
+      )}
+    >
+      {occurrence.expense.name}
+    </Link>
   )
 }
