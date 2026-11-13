@@ -6,7 +6,7 @@ import { AnalyticsOverview } from '@/features/analytics'
  */
 export function AnalyticsRoute() {
   return (
-    <div className="mx-auto w-full max-w-xl">
+    <div className="mx-auto w-full max-w-xl lg:max-w-310">
       <AnalyticsOverview />
     </div>
   )

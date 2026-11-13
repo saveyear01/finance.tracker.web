@@ -46,12 +46,14 @@ export function PeriodPicker({
 
   return (
     // Two rows: on a phone, three controls side by side left the period's
-    // name a few letters wide.
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
+    // name a few letters wide. From lg there is room, so they make one row —
+    // the first row dissolves (`contents`) and Pick dates moves to the end,
+    // leaving Month/Year, ‹ name ›, Pick dates.
+    <div className="space-y-2 lg:flex lg:items-center lg:gap-2 lg:space-y-0">
+      <div className="flex items-center gap-2 lg:contents">
         <SegmentedControl
           label="Period"
-          className="h-10 min-w-0 flex-1"
+          className="h-10 min-w-0 flex-1 lg:w-40 lg:flex-none"
           value={range.unit === 'custom' ? ('' as 'month') : range.unit}
           onChange={(unit) => onChange(withUnit(range, unit, today))}
           options={[
@@ -61,7 +63,7 @@ export function PeriodPicker({
         />
         <Button
           variant="outline"
-          className={cn('h-10 shrink-0 rounded-xl px-3', range.unit === 'custom' && 'border-primary text-primary')}
+          className={cn('h-10 shrink-0 rounded-xl px-3 lg:order-last', range.unit === 'custom' && 'border-primary text-primary')}
           aria-pressed={range.unit === 'custom'}
           onClick={() => setCustomOpen(true)}
         >
@@ -70,7 +72,8 @@ export function PeriodPicker({
         </Button>
       </div>
 
-      <div className="flex h-11 items-center justify-between rounded-xl border border-border bg-card px-1">
+      {/* A fixed width at lg, so stepping from May to September doesn't shift the row. */}
+      <div className="flex h-11 items-center justify-between rounded-xl border border-border bg-card px-1 lg:h-10 lg:w-64">
         <Button
           variant="ghost"
           size="icon"

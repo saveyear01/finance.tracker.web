@@ -1,10 +1,13 @@
 import { CalendarCheck } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 import { AddCard } from '@/components/add-card'
 import { EmptyState } from '@/components/layouts/empty-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { localToday } from '@/features/transactions'
+import { useIsCompact } from '@/hooks/use-compact'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
@@ -13,6 +16,7 @@ import { useDue } from '../hooks/use-upcoming'
 import { monthName, monthTitle, statusOf } from '../lib/upcoming-meta'
 import type { Occurrence } from '../types'
 import { BillRow } from './bill-row'
+import { BillsCalendar } from './bills-calendar'
 import { DueSummary } from './due-summary'
 
 const centsOf = (amount: string) => Math.round(Number(amount) * 100)
@@ -48,6 +52,14 @@ function spanLabel(from: string, through: string): string {
  *
  * Rows are links: paying, skipping, editing and deleting all live on the due
  * date's own page.
+ *
+ * From lg (design/large-screen.html): the summary runs across the page, then
+ * the sections on the left and the month as a calendar on the right. Adding
+ * moves to the toolbar's button, so the dashed card is a phone's only. The
+ * Later tab has no calendar — a year is too long for one grid — so its month
+ * sections pair up in two columns instead. An empty month keeps the summary
+ * at zero and the calendar, with the empty state (and a button to add one)
+ * in the list's place.
  */
 export function MonthBills({
   month,
@@ -71,6 +83,7 @@ export function MonthBills({
   })
   const today = localToday()
   const spansMonths = through !== undefined
+  const compact = useIsCompact()
 
   if (isLoading) {
     return (
@@ -89,28 +102,62 @@ export function MonthBills({
       </Alert>
     )
   }
-  const add = <AddCard label="Add new upcoming expense" onClick={onAdd} />
+  const add = <AddCard label="Add new upcoming expense" onClick={onAdd} className="lg:hidden" />
   const later = excludeMonthly && (
     <p className="px-0.5 text-xs text-muted-foreground">
       One-off and yearly bills for the twelve months ahead. The ones that repeat every month are on the month
       tabs.
     </p>
   )
+  const summary = (
+    <section
+      className={cn('card-surface p-4 text-card-foreground lg:px-5', occurrences.length === 0 && 'hidden lg:block')}
+      aria-label="Summary"
+    >
+      <DueSummary
+        occurrences={occurrences}
+        today={today}
+        span={spansMonths ? spanLabel(month, through) : undefined}
+        wide
+      />
+    </section>
+  )
+  // Hidden rather than unmounted below lg: the same tree either way, so a
+  // window dragged across the breakpoint doesn't refetch or lose its place.
+  const calendar = !spansMonths && (
+    <div className="hidden lg:block">
+      <BillsCalendar month={month} occurrences={occurrences} today={today} />
+    </div>
+  )
+  const columns = (list: ReactNode) =>
+    spansMonths ? (
+      list
+    ) : (
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] lg:items-start lg:gap-6">
+        {list}
+        {calendar}
+      </div>
+    )
 
   if (occurrences.length === 0) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 lg:space-y-4">
+        {summary}
         {later}
         {add}
-        <EmptyState
-          icon={CalendarCheck}
-          title={spansMonths ? `Nothing due ${spanLabel(month, through)}` : `Nothing due in ${monthName(month)}`}
-          description={
-            excludeMonthly
-              ? 'One-off and yearly bills due after next month show up here.'
-              : "Add the bills you know are coming — rent, internet, insurance — and they show up in the month they're due."
-          }
-        />
+        {columns(
+          <EmptyState
+            icon={CalendarCheck}
+            title={spansMonths ? `Nothing due ${spanLabel(month, through)}` : `Nothing due in ${monthName(month)}`}
+            description={
+              excludeMonthly
+                ? 'One-off and yearly bills due after next month show up here.'
+                : "Add the bills you know are coming — rent, internet, insurance — and they show up in the month they're due."
+            }
+            // A phone has the dashed card right above it.
+            action={!compact && <Button onClick={onAdd}>Add upcoming expense</Button>}
+          />,
+        )}
       </div>
     )
   }
@@ -131,30 +178,33 @@ export function MonthBills({
     : null
 
   return (
-    <div className="space-y-3">
-      <section className="card-surface p-4 text-card-foreground" aria-label="Summary">
-        <DueSummary
-          occurrences={occurrences}
-          today={today}
-          span={spansMonths ? spanLabel(month, through) : undefined}
-        />
-      </section>
+    <div className="space-y-3 lg:space-y-4">
+      {summary}
       {later}
       {add}
 
-      {overdue.length > 0 && <Section title="Overdue" items={overdue} today={today} urgent />}
-      {months
-        ? months.map(({ key, items }) => (
-            <Section key={key} title={monthTitle(key)} items={items} today={today} quiet />
-          ))
-        : coming.length > 0 && <Section title="Coming up" items={coming} today={today} />}
-      {overdue.length + coming.length === 0 && (
-        <p className="py-2 text-center text-sm text-muted-foreground">
-          {paid.length > 0 ? 'Everything here is paid.' : 'Nothing left to pay here.'}
-        </p>
+      {columns(
+        <div
+          className={cn(
+            'space-y-3',
+            spansMonths && 'lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-6 lg:gap-y-4 lg:space-y-0',
+          )}
+        >
+          {overdue.length > 0 && <Section title="Overdue" items={overdue} today={today} urgent />}
+          {months
+            ? months.map(({ key, items }) => (
+                <Section key={key} title={monthTitle(key)} items={items} today={today} quiet />
+              ))
+            : coming.length > 0 && <Section title="Coming up" items={coming} today={today} />}
+          {overdue.length + coming.length === 0 && (
+            <p className="py-2 text-center text-sm text-muted-foreground lg:col-span-2">
+              {paid.length > 0 ? 'Everything here is paid.' : 'Nothing left to pay here.'}
+            </p>
+          )}
+          {paid.length > 0 && <Section title="Paid" items={paid} today={today} figure="paid" />}
+          {skipped.length > 0 && <Section title="Skipped" items={skipped} today={today} figure="none" />}
+        </div>,
       )}
-      {paid.length > 0 && <Section title="Paid" items={paid} today={today} figure="paid" />}
-      {skipped.length > 0 && <Section title="Skipped" items={skipped} today={today} figure="none" />}
     </div>
   )
 }

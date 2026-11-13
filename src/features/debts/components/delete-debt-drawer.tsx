@@ -12,6 +12,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { getApiErrorMessage } from '@/lib/api-client'
+import { formatMoney } from '@/lib/money'
 
 import { useDeleteDebt } from '../hooks/use-debts'
 import type { Debt } from '../types'
@@ -42,8 +43,11 @@ export function DeleteDebtDrawer({
         <DrawerHeader>
           <DrawerTitle>{debt && `Delete ${debt.name}?`}</DrawerTitle>
           <DrawerDescription>
-            Its rate history and anything added to it go too. Payments you already made were real
-            money, so they stay in your activity.
+            {/* In money: nothing moves — a debt is an obligation, not a balance. */}
+            {debt && Number(debt.remaining) > 0
+              ? `The ${formatMoney(debt.remaining)} still owed stops being tracked. No money moves. `
+              : 'No money moves. '}
+            Its rate history and charges go too; payments you made stay in your activity.
           </DrawerDescription>
         </DrawerHeader>
 

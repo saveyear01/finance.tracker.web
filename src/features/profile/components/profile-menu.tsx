@@ -1,14 +1,52 @@
 import { ChartPie, ChevronRight, Download, Loader2, LogOut, Moon, UserRound } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { Switch } from '@/components/ui/switch'
 import { useAllocation } from '@/features/allocations'
 import { useCurrentUser, useLogout, useUpdateTheme } from '@/features/auth'
 import { getApiErrorMessage } from '@/lib/api-client'
+import { cn } from '@/lib/utils'
 
 const ROW =
   'flex min-h-14 w-full items-center gap-3 px-4 text-left transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none'
+
+/** The page open beside the menu on a big screen: the accent ground (as on
+ * hover) and a primary bar down its leading edge. */
+const SELECTED = 'bg-accent shadow-[inset_3px_0_0_var(--color-primary)]'
+
+/** A row that opens a sub-page — selected when that page is the one open,
+ * which only happens beside it (on a phone the menu is a page of its own). */
+function PageRow({
+  to,
+  icon,
+  title,
+  detail,
+}: {
+  to: string
+  icon: typeof UserRound
+  title: string
+  detail: string
+}) {
+  const { pathname } = useLocation()
+  const selected = pathname === to
+  return (
+    <li>
+      <Link
+        to={to}
+        aria-current={selected ? 'page' : undefined}
+        className={cn(ROW, selected && SELECTED)}
+      >
+        <RowIcon icon={icon} />
+        <span className="flex-1">
+          <span className="block font-medium">{title}</span>
+          <span className="block text-sm text-muted-foreground">{detail}</span>
+        </span>
+        <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
+      </Link>
+    </li>
+  )
+}
 
 function RowIcon({ icon: Icon }: { icon: typeof UserRound }) {
   return (
@@ -43,38 +81,24 @@ export function ProfileMenu() {
   return (
     <>
       <ul className="divide-y divide-border overflow-hidden card-surface">
-        <li>
-          <Link to="/profile/settings" className={ROW}>
-            <RowIcon icon={UserRound} />
-            <span className="flex-1">
-              <span className="block font-medium">Profile settings</span>
-              <span className="block text-sm text-muted-foreground">Name and password</span>
-            </span>
-            <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
-          </Link>
-        </li>
-        <li>
-          <Link to="/profile/income-split" className={ROW}>
-            <RowIcon icon={ChartPie} />
-            <span className="flex-1">
-              <span className="block font-medium">Income split</span>
-              <span className="block text-sm text-muted-foreground">{allocationSummary}</span>
-            </span>
-            <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
-          </Link>
-        </li>
-        <li>
-          <Link to="/profile/export" className={ROW}>
-            <RowIcon icon={Download} />
-            <span className="flex-1">
-              <span className="block font-medium">Export data</span>
-              <span className="block text-sm text-muted-foreground">
-                Download your entries as a spreadsheet
-              </span>
-            </span>
-            <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
-          </Link>
-        </li>
+        <PageRow
+          to="/profile/settings"
+          icon={UserRound}
+          title="Profile settings"
+          detail="Name and password"
+        />
+        <PageRow
+          to="/profile/income-split"
+          icon={ChartPie}
+          title="Income split"
+          detail={allocationSummary}
+        />
+        <PageRow
+          to="/profile/export"
+          icon={Download}
+          title="Export data"
+          detail="Download your entries as a spreadsheet"
+        />
         <li>
           {/* A label, so the whole row toggles — not just the small switch. */}
           <label className={`${ROW} cursor-pointer`}>

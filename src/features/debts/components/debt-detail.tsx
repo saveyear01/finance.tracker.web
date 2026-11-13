@@ -335,6 +335,12 @@ function PaymentDrawer({ groupId, onClose }: { groupId: string | null; onClose: 
  *   change opens Interest.
  *
  * Delete sits apart at the bottom: it should never be a neighbour of Pay.
+ *
+ * Beside the list on a big screen the pane is wide enough to pair things up:
+ * the actions move to the hero's right, Schedule (or Pace) sits beside
+ * Breakdown, and Terms beside History. These are CONTAINER queries, gated on
+ * `lg`: what decides it is the pane's width, which the list column and the
+ * sidebar eat into, and a tablet's single column must stay the phone layout.
  */
 export function DebtDetail({
   id,
@@ -360,7 +366,7 @@ export function DebtDetail({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl lg:h-48" />
         <Skeleton className="h-40 w-full rounded-xl" />
       </div>
     )
@@ -398,67 +404,75 @@ export function DebtDetail({
     .filter(Boolean)
     .join(' · ')
 
+  const scheduleCard =
+    open && (debt.schedule ? <ScheduleCard debt={debt} /> : <PaceCard debt={debt} />)
+
   return (
-    <div className="space-y-4">
-      <section className="rounded-xl bg-secondary px-5 pt-4 pb-5 text-secondary-foreground">
-        {open ? (
-          <>
-            {heading && <p className="text-sm opacity-85">{heading}</p>}
-            <p className="mt-1 text-lg font-medium break-words">{debt.name}</p>
-            <p className="mt-1 figure-xl">{formatMoney(debt.remaining)}</p>
-            <p className="text-sm opacity-85">left to pay</p>
+    <div className="@container space-y-4">
+      <section className="rounded-xl bg-secondary px-5 pt-4 pb-5 text-secondary-foreground lg:@xl:grid lg:@xl:grid-cols-[minmax(0,1fr)_auto] lg:@xl:items-end lg:@xl:gap-6 lg:@xl:py-5">
+        {/* One cell, so the hero's text stays one column beside the actions. */}
+        <div className="min-w-0">
+          {open ? (
+            <>
+              {heading && <p className="text-sm opacity-85">{heading}</p>}
+              <p className="mt-1 text-lg font-medium break-words">{debt.name}</p>
+              <p className="mt-1 figure-xl">{formatMoney(debt.remaining)}</p>
+              <p className="text-sm opacity-85">left to pay</p>
 
-            <div
-              className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-secondary-foreground/15"
-              role="progressbar"
-              aria-valuenow={progress}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={`${debt.name} paid off`}
-            >
               <div
-                className="h-full rounded-full bg-secondary-accent"
-                style={{ width: `${progress}%` }}
-              />
+                className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-secondary-foreground/15"
+                role="progressbar"
+                aria-valuenow={progress}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`${debt.name} paid off`}
+              >
+                <div
+                  className="h-full rounded-full bg-secondary-accent"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="mt-2 text-sm opacity-85">
+                {formatMoney(debt.paid)} of {formatMoney(debt.owed)} paid · {progress}%
+              </p>
+              <p
+                className={cn(
+                  'mt-3 inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                  standing.tone === 'bad' && 'bg-destructive/35 text-secondary-foreground',
+                  standing.tone === 'good' && 'bg-secondary-accent/15 text-secondary-accent',
+                  standing.tone === 'neutral' && 'bg-secondary-foreground/10',
+                )}
+              >
+                {standing.label}
+                {standing.tone === 'bad' &&
+                  debt.schedule &&
+                  centsOf(debt.schedule.behind) >= centsOf(debt.monthly_payment ?? '0') &&
+                  ` · ${formatMoney(debt.schedule.behind)}`}
+              </p>
+            </>
+          ) : (
+            <div className="grid justify-items-center gap-1 py-2 text-center">
+              <span className="grid size-12 place-items-center rounded-full bg-secondary-accent/20 text-secondary-accent">
+                <Check className="size-6" aria-hidden="true" />
+              </span>
+              <p className="mt-1 text-lg font-medium break-words">{debt.name}</p>
+              <p className="figure-lg">Paid off</p>
+              <p className="text-sm opacity-85">
+                {formatMoney(debt.paid)} paid
+                {lastPayment && ` · cleared ${longDate(lastPayment.paid_on)}`}
+              </p>
             </div>
-            <p className="mt-2 text-sm opacity-85">
-              {formatMoney(debt.paid)} of {formatMoney(debt.owed)} paid · {progress}%
-            </p>
-            <p
-              className={cn(
-                'mt-3 inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                standing.tone === 'bad' && 'bg-destructive/35 text-secondary-foreground',
-                standing.tone === 'good' && 'bg-secondary-accent/15 text-secondary-accent',
-                standing.tone === 'neutral' && 'bg-secondary-foreground/10',
-              )}
-            >
-              {standing.label}
-              {standing.tone === 'bad' &&
-                debt.schedule &&
-                centsOf(debt.schedule.behind) >= centsOf(debt.monthly_payment ?? '0') &&
-                ` · ${formatMoney(debt.schedule.behind)}`}
-            </p>
-          </>
-        ) : (
-          <div className="grid justify-items-center gap-1 py-2 text-center">
-            <span className="grid size-12 place-items-center rounded-full bg-secondary-accent/20 text-secondary-accent">
-              <Check className="size-6" aria-hidden="true" />
-            </span>
-            <p className="mt-1 text-lg font-medium break-words">{debt.name}</p>
-            <p className="figure-lg">Paid off</p>
-            <p className="text-sm opacity-85">
-              {formatMoney(debt.paid)} paid
-              {lastPayment && ` · cleared ${longDate(lastPayment.paid_on)}`}
-            </p>
-          </div>
-        )}
+          )}
+        </div>
 
+        {/* Wide, a row of fixed-width buttons (flex ignores the inline grid
+            template); narrow, they share the card's width evenly. */}
         <ul
-          className="mt-5 grid gap-2"
+          className="mt-5 grid gap-2 lg:@xl:mt-0 lg:@xl:flex"
           style={{ gridTemplateColumns: `repeat(${actions.length}, minmax(0, 1fr))` }}
         >
           {actions.map(({ key, label, icon: Icon, onClick }) => (
-            <li key={key}>
+            <li key={key} className="lg:@xl:w-18">
               <button
                 type="button"
                 onClick={onClick}
@@ -474,113 +488,126 @@ export function DebtDetail({
         </ul>
       </section>
 
-      {open && (debt.schedule ? <ScheduleCard debt={debt} /> : <PaceCard debt={debt} />)}
-
-      <Card title="Breakdown">
-        <Breakdown debt={debt} />
-      </Card>
-
-      <Card
-        title="Terms"
-        aside={
-          <button
-            type="button"
-            onClick={() => onRates(debt)}
-            className="rounded-md text-sm font-semibold text-primary outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            Interest ›
-          </button>
-        }
-      >
-        <Rows
-          rows={[
-            [RATE_KIND_LABELS[debt.rate_kind], rate ?? 'None'],
-            ['Term', term ?? 'Open-ended'],
-            ...(debt.monthly_payment
-              ? ([['Monthly payment', formatMoney(debt.monthly_payment)]] as [string, ReactNode][])
-              : []),
-            ...(debt.minimum_payment
-              ? ([['Minimum asked', formatMoney(debt.minimum_payment)]] as [string, ReactNode][])
-              : []),
-            ['Started', longDate(debt.opened_on)],
-          ]}
-        />
-        {debt.note && <p className="text-sm text-muted-foreground">{debt.note}</p>}
-      </Card>
-
-      <section className="space-y-2">
-        <h2 className="flex items-baseline justify-between gap-3 px-0.5">
-          <span className="text-sm font-semibold">History</span>
-          <span className="text-xs text-muted-foreground">
-            {entries} {entries === 1 ? 'entry' : 'entries'}
-          </span>
-        </h2>
-        <ul className="overflow-hidden card-surface text-card-foreground">
-          {history.map((item) => {
-            switch (item.kind) {
-              case 'payment':
-                return (
-                  <HistoryRow
-                    key={item.key}
-                    icon={Minus}
-                    tone="pay"
-                    title="Payment"
-                    detail={shortDate(item.date)}
-                    amount={`−${formatMoney(item.amount)}`}
-                    onClick={() => setPayment(item.groupId)}
-                  />
-                )
-              case 'charge':
-                return (
-                  <HistoryRow
-                    key={item.key}
-                    icon={Plus}
-                    tone="charge"
-                    title={item.charge.note ?? 'Charge'}
-                    detail={`${shortDate(item.date)} · charge`}
-                    amount={<span className="text-destructive">+{formatMoney(item.charge.amount)}</span>}
-                    onClick={() => onEditCharge(debt, item.charge)}
-                  />
-                )
-              case 'rate':
-                return (
-                  <HistoryRow
-                    key={item.key}
-                    icon={Percent}
-                    title={`Rate set to ${formatRate(item.rate.monthly_rate)}`}
-                    detail={shortDate(item.date)}
-                    onClick={() => onRates(debt)}
-                  />
-                )
-              case 'start':
-                return (
-                  <HistoryRow
-                    key={item.key}
-                    icon={Sparkle}
-                    title="Started"
-                    detail={[
-                      longDate(item.date),
-                      formatMoney(debt.principal),
-                      debt.rates[0]?.effective_from === debt.opened_on &&
-                        `at ${formatRate(debt.rates[0].monthly_rate)}`,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  />
-                )
-            }
-          })}
-        </ul>
-        {debt.payments.length === 0 && (
-          <p className="px-0.5 text-xs text-muted-foreground">
-            No payments yet. Paying records a real expense from a wallet, and brings this debt down.
-          </p>
+      {/* A paid-off debt has no Schedule or Pace, so Breakdown takes the row. */}
+      <div
+        className={cn(
+          'flex flex-col gap-4',
+          scheduleCard && 'lg:@2xl:grid lg:@2xl:grid-cols-2 lg:@2xl:items-start',
         )}
-      </section>
+      >
+        {scheduleCard}
+        <Card title="Breakdown">
+          <Breakdown debt={debt} />
+        </Card>
+      </div>
+
+      <div className="flex flex-col gap-4 lg:@2xl:grid lg:@2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:@2xl:items-start">
+        <Card
+          title="Terms"
+          aside={
+            <button
+              type="button"
+              onClick={() => onRates(debt)}
+              className="rounded-md text-sm font-semibold text-primary outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              Interest ›
+            </button>
+          }
+        >
+          <Rows
+            rows={[
+              [RATE_KIND_LABELS[debt.rate_kind], rate ?? 'None'],
+              ['Term', term ?? 'Open-ended'],
+              ...(debt.monthly_payment
+                ? ([['Monthly payment', formatMoney(debt.monthly_payment)]] as [string, ReactNode][])
+                : []),
+              ...(debt.minimum_payment
+                ? ([['Minimum asked', formatMoney(debt.minimum_payment)]] as [string, ReactNode][])
+                : []),
+              ['Started', longDate(debt.opened_on)],
+            ]}
+          />
+          {debt.note && <p className="text-sm text-muted-foreground">{debt.note}</p>}
+        </Card>
+
+        <section className="space-y-2">
+          <h2 className="flex items-baseline justify-between gap-3 px-0.5">
+            <span className="text-sm font-semibold">History</span>
+            <span className="text-xs text-muted-foreground">
+              {entries} {entries === 1 ? 'entry' : 'entries'}
+            </span>
+          </h2>
+          <ul className="overflow-hidden card-surface text-card-foreground">
+            {history.map((item) => {
+              switch (item.kind) {
+                case 'payment':
+                  return (
+                    <HistoryRow
+                      key={item.key}
+                      icon={Minus}
+                      tone="pay"
+                      title="Payment"
+                      detail={shortDate(item.date)}
+                      amount={`−${formatMoney(item.amount)}`}
+                      onClick={() => setPayment(item.groupId)}
+                    />
+                  )
+                case 'charge':
+                  return (
+                    <HistoryRow
+                      key={item.key}
+                      icon={Plus}
+                      tone="charge"
+                      title={item.charge.note ?? 'Charge'}
+                      detail={`${shortDate(item.date)} · charge`}
+                      amount={<span className="text-destructive">+{formatMoney(item.charge.amount)}</span>}
+                      onClick={() => onEditCharge(debt, item.charge)}
+                    />
+                  )
+                case 'rate':
+                  return (
+                    <HistoryRow
+                      key={item.key}
+                      icon={Percent}
+                      title={`Rate set to ${formatRate(item.rate.monthly_rate)}`}
+                      detail={shortDate(item.date)}
+                      onClick={() => onRates(debt)}
+                    />
+                  )
+                case 'start':
+                  return (
+                    <HistoryRow
+                      key={item.key}
+                      icon={Sparkle}
+                      title="Started"
+                      detail={[
+                        longDate(item.date),
+                        formatMoney(debt.principal),
+                        debt.rates[0]?.effective_from === debt.opened_on &&
+                          `at ${formatRate(debt.rates[0].monthly_rate)}`,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    />
+                  )
+              }
+            })}
+          </ul>
+          {debt.payments.length === 0 && (
+            <p className="px-0.5 text-xs text-muted-foreground">
+              No payments yet. Paying records a real expense from a wallet, and brings this debt down.
+            </p>
+          )}
+        </section>
+      </div>
 
       {/* Apart from the rest on purpose: never a neighbour of Pay. */}
       <div className="pt-2">
-        <Button variant="outline" className="w-full text-destructive" onClick={() => onDelete(debt)}>
+        <Button
+          variant="outline"
+          className="w-full text-destructive lg:@xl:w-auto"
+          onClick={() => onDelete(debt)}
+        >
           <Trash2 />
           Delete debt
         </Button>

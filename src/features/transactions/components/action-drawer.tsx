@@ -21,10 +21,11 @@ import {
 import { FieldError } from '@/components/ui/field'
 import { Switch } from '@/components/ui/switch'
 import { useAllocation } from '@/features/allocations'
-import { useFunds } from '@/features/funds'
+import { fundColors, useFunds } from '@/features/funds'
 import { useWallets } from '@/features/wallets'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
+import { cn } from '@/lib/utils'
 
 import {
   useEditAction,
@@ -35,6 +36,7 @@ import {
   useTransfer,
 } from '../hooks/use-transactions'
 import { snapNote } from '../lib/notes'
+import { splitByWeight } from '../lib/split-preview'
 import { ACTION_META, localToday } from '../lib/transaction-meta'
 import { actionSchema, type ActionFormValues } from '../schemas/action-schema'
 import { NoteField } from './note-field'
@@ -129,6 +131,83 @@ function splitSummary(legs: Transaction[]): string {
   return legs
     .map((leg) => `${leg.fund_name} ${Math.round((centsOf(leg.amount) / total) * 100)}%`)
     .join(' · ')
+}
+
+/** "Necessity after: ₱12,570.00" — one pair's balance once this is saved. */
+type AfterLine = { label: string; cents: number }
+
+/**
+ * What a debit (or both sides of a move) leaves behind. Negative only ever
+ * happens on an expense, which may overdraw (decided 2026-10-05) — said in
+ * red, as the allocation will read, so it's a choice rather than a surprise.
+ */
+function AfterPreview({ lines }: { lines: AfterLine[] }) {
+  return (
+    <dl className="-mt-1 grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 text-sm" aria-live="polite">
+      {lines.map((line) => (
+        <div key={line.label} className="contents">
+          <dt className="truncate text-muted-foreground">{line.label} after</dt>
+          <dd
+            className={cn(
+              'text-right font-medium tabular-nums',
+              line.cents < 0 && 'text-destructive',
+            )}
+          >
+            {formatMoney(line.cents / 100)}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+/**
+ * "Each allocation gets" — an auto-split income worked out before it's
+ * saved, by the API's own rounding (`lib/split-preview`), so the figures are
+ * the ones the ledger will write. Shares that round to ₱0.00 get no entry
+ * there, so none here either.
+ */
+function SplitPreview({
+  totalCents,
+  shares,
+  colors,
+}: {
+  totalCents: number
+  shares: { fundId: string; name: string; percent: number; cents: number }[]
+  colors: Map<string, string>
+}) {
+  const shown = shares.filter((share) => share.cents > 0)
+  return (
+    <div className="space-y-2 rounded-xl border border-border bg-background px-3.5 py-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-sm font-semibold">Each allocation gets</p>
+        <p className="text-xs text-muted-foreground">adds up to {formatMoney(totalCents / 100)}</p>
+      </div>
+      <div className="flex h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+        {shown.map((share) => (
+          <span
+            key={share.fundId}
+            style={{
+              width: `${(share.cents / totalCents) * 100}%`,
+              background: colors.get(share.fundId) ?? 'var(--series-other)',
+            }}
+          />
+        ))}
+      </div>
+      <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 text-sm" aria-live="polite">
+        {shown.map((share) => (
+          <div key={share.fundId} className="contents">
+            <dt className="truncate text-muted-foreground">
+              {share.name} · {share.percent}%
+            </dt>
+            <dd className="text-right font-medium tabular-nums">
+              {formatMoney(share.cents / 100)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  )
 }
 
 /**
@@ -277,7 +356,9 @@ export function ActionDrawer({
   })
 
   const walletId = useWatch({ control, name: 'wallet_id' })
+  const toWalletId = useWatch({ control, name: 'to_wallet_id' })
   const fundId = useWatch({ control, name: 'fund_id' })
+  const toFundId = useWatch({ control, name: 'to_fund_id' })
   const autoAllocate = useWatch({ control, name: 'auto_allocate' })
   const amount = useWatch({ control, name: 'amount' })
 
@@ -341,13 +422,63 @@ export function ActionDrawer({
       label: fund.name,
       detail: formatMoney((heldCents.get(`${wallet}:${fund.id}`) ?? 0) / 100),
     }))
-  // What an expense of the typed amount leaves the allocation at, when that
-  // is below zero — null otherwise.
   const amountCents = Math.round(Number(amount || '0') * 100)
-  const leftCents =
-    action === 'expense' && available !== null && amountCents > 0 && amountCents > available
-      ? available - amountCents
-      : null
+  const fundName = (id: string) => funds.find((fund) => fund.id === id)?.name ?? 'Allocation'
+  const walletName = (id: string) => wallets.find((wallet) => wallet.id === id)?.name ?? 'Wallet'
+  const held = (wallet: string, fund: string) => heldCents.get(`${wallet}:${fund}`) ?? 0
+
+  // LIVE PREVIEWS (all screen sizes — decided 2026-11-13), from what the
+  // drawer already holds: the funds' holdings and the allocation.
+  //
+  // What the source is left at, and for a move or transfer what the other
+  // side becomes. A move or transfer past what's there is the schema's
+  // error under the amount, so its preview waits until it fits.
+  const afterLines: AfterLine[] = []
+  if (available !== null && amountCents > 0 && action !== 'adjustment') {
+    const left = available - amountCents
+    if (action === 'expense') {
+      afterLines.push({ label: fundName(fundId), cents: left })
+    } else if (left >= 0 && action === 'reallocation') {
+      afterLines.push({ label: fundName(fundId), cents: left })
+      if (toFundId) {
+        afterLines.push({ label: fundName(toFundId), cents: held(walletId, toFundId) + amountCents })
+      }
+    } else if (left >= 0 && action === 'transfer') {
+      afterLines.push({ label: `${walletName(walletId)} · ${fundName(fundId)}`, cents: left })
+      if (toWalletId) {
+        afterLines.push({
+          label: `${walletName(toWalletId)} · ${fundName(fundId)}`,
+          cents: held(toWalletId, fundId) + amountCents,
+        })
+      }
+    }
+  }
+
+  // How an auto-split income will land. An edit of one that was already
+  // split keeps its OWN proportions — the API re-splits by its old legs'
+  // cents, in their order — so the preview does the same; otherwise it is
+  // today's allocation, in its order (ties go to the first).
+  const colors = useMemo(() => fundColors(funds), [funds])
+  const split = (() => {
+    if (action !== 'income' || !autoAllocate || amountCents <= 0) return null
+    const weights =
+      wasAutoSplit && editing
+        ? editing.map((leg) => ({
+            key: { fundId: leg.fund_id ?? '', name: leg.fund_name ?? 'Allocation' },
+            weight: centsOf(leg.amount),
+          }))
+        : rules.map((rule) => ({
+            key: { fundId: rule.fund_id, name: rule.fund_name },
+            weight: rule.percentage,
+          }))
+    if (weights.length === 0) return null
+    const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0)
+    return splitByWeight(amountCents, weights).map(({ key, cents }, index) => ({
+      ...key,
+      cents,
+      percent: Math.round((weights[index].weight / totalWeight) * 100),
+    }))
+  })()
 
   const walletOptions: PickerOption[] = pickable.wallets.map((w) => ({ value: w.id, label: w.name }))
   const allFundOptions: PickerOption[] = pickable.funds.map((f) => ({ value: f.id, label: f.name }))
@@ -531,6 +662,10 @@ export function ActionDrawer({
                   )}
                 </div>
 
+                {/* Right under the picker it describes; it follows the
+                    amount as it's typed. */}
+                {afterLines.length > 0 && <AfterPreview lines={afterLines} />}
+
                 {action === 'income' && (
                   <label className="flex items-center gap-3 card-surface p-3">
                     <span className="flex-1">
@@ -582,19 +717,15 @@ export function ActionDrawer({
                       invalid={Boolean(errors.amount)}
                       hint={
                         errors.amount?.message ??
-                        (leftCents !== null ? (
-                          // Not an error — spending past what's there is
-                          // allowed — but said in red, before it's saved.
-                          <span className="text-destructive">
-                            More than is there · leaves it at {formatMoney(leftCents / 100)}
-                          </span>
-                        ) : available !== null ? (
-                          `Available: ${formatMoney(available / 100)}`
-                        ) : undefined)
+                        (available !== null
+                          ? `Available: ${formatMoney(available / 100)}`
+                          : undefined)
                       }
                     />
                   )}
                 />
+
+                {split && <SplitPreview totalCents={amountCents} shares={split} colors={colors} />}
 
                 <div className="grid grid-cols-[1fr_auto] gap-2">
                   <Controller

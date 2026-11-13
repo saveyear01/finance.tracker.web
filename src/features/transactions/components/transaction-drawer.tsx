@@ -18,6 +18,7 @@ import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
 import { useDeleteAction, useTransactionGroup } from '../hooks/use-transactions'
+import { deleteEffect } from '../lib/delete-effect'
 import {
   TYPE_NAMES,
   authorLabel,
@@ -130,7 +131,9 @@ export function TransactionDrawer({
                 </DrawerTitle>
                 <DrawerDescription>
                   {step === 'confirm-delete'
-                    ? "This removes it for good and puts its money back where it was. There's no undo."
+                    ? // What happens, in money, read off the legs: "₱2,140.00
+                      // goes back to BDO · Necessity."
+                      `${deleteEffect(legs)} It's removed for everyone in the household, and there's no undo.`
                     : // The kind of entry, unless the title already says it.
                       [
                         first.note && kind,

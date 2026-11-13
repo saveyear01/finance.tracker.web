@@ -1,10 +1,10 @@
-import { NameForm, PasswordForm } from '@/features/profile'
+import { NameForm, PasswordForm, ProfileLayout } from '@/features/profile'
 
 export function ProfileSettingsRoute() {
   return (
-    <div className="mx-auto w-full max-w-xl space-y-4">
+    <ProfileLayout>
       <NameForm />
       <PasswordForm />
-    </div>
+    </ProfileLayout>
   )
 }

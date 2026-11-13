@@ -91,8 +91,9 @@ export function SummaryHero({
 
       {buckets.length > 1 && (
         // Decorative: the figures are in the cards below and on each note's page.
+        // Taller from lg, where the hero shares a row with Cash flow's chart.
         <div aria-hidden="true">
-          <div className="mt-4 flex h-12 items-end gap-[2px]">
+          <div className="mt-4 flex h-12 items-end gap-[2px] lg:h-24">
             {buckets.map((bucket) => (
               <span
                 key={bucket.key}

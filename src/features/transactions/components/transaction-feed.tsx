@@ -1,70 +1,42 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Loader2, Receipt } from 'lucide-react'
 
 import { EmptyState } from '@/components/layouts/empty-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { getApiErrorMessage } from '@/lib/api-client'
+import { cn } from '@/lib/utils'
 
+import { useLoadMore } from '../hooks/use-load-more'
 import { useTransactionPages } from '../hooks/use-transactions'
-import { formatActivityDate, localToday } from '../lib/transaction-meta'
+import { byDay, dayHeading } from '../lib/days'
 import type { Transaction, TransactionFilter } from '../types'
 import { TransactionDrawer } from './transaction-drawer'
 import { TransactionRow } from './transaction-row'
 
 const PAGE_SIZE = 20
 
-/** "Today", "Yesterday", or the date — the heading over a day's entries. */
-function dayHeading(isoDate: string): string {
-  const today = localToday()
-  const [y, m, d] = today.split('-').map(Number)
-  const yesterday = new Date(y, m - 1, d - 1)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const yesterdayIso = `${yesterday.getFullYear()}-${pad(yesterday.getMonth() + 1)}-${pad(yesterday.getDate())}`
-
-  if (isoDate === today) return 'Today'
-  if (isoDate === yesterdayIso) return 'Yesterday'
-  return formatActivityDate(isoDate)
-}
-
-/** Consecutive entries grouped by day. The API already sorts newest first. */
-function byDay(entries: Transaction[]): Array<{ date: string; entries: Transaction[] }> {
-  const groups: Array<{ date: string; entries: Transaction[] }> = []
-  for (const entry of entries) {
-    const last = groups.at(-1)
-    if (last?.date === entry.date) {
-      last.entries.push(entry)
-    } else {
-      groups.push({ date: entry.date, entries: [entry] })
-    }
-  }
-  return groups
-}
-
 /**
  * Every entry, newest first, grouped by day — loading the next 20 as the end
- * of the list scrolls into view.
- *
- * A sentinel under the list is watched with an IntersectionObserver rather
- * than listening to scroll events: no work runs while scrolling, and it works
- * inside any scroll container. The observer's margin starts the next fetch a
- * little before the end is reached, so a steady scroll rarely waits.
- *
- * A "Load more" button sits in the same place as the fallback — for keyboard
- * and screen-reader users, and for anyone whose screen is tall enough that
- * the sentinel is visible before they scroll at all.
+ * of the list scrolls into view (`useLoadMore`), with a "Load more" button
+ * in the same place as the fallback.
  *
  * Tapping a row opens it, to edit or delete.
  *
  * With `filter` it is one wallet's or one allocation's activity — the foot of
- * its own page — and `empty` says what nothing means there.
+ * its own page — and `empty` says what nothing means there, optionally with
+ * the button that changes it (a search with no matches offers to clear it).
+ * `keepPrevious` holds the old rows while a changed filter loads, dimmed —
+ * for a search, so typing doesn't flash a skeleton.
  */
 export function TransactionFeed({
   filter,
   empty,
+  keepPrevious = false,
 }: {
   filter?: TransactionFilter
-  empty?: { title: string; description: string }
+  empty?: { title: string; description: string; action?: ReactNode }
+  keepPrevious?: boolean
 } = {}) {
   const {
     transactions,
@@ -75,27 +47,15 @@ export function TransactionFeed({
     fetchNextPage,
     isFetchingNextPage,
     isFetchNextPageError,
-  } = useTransactionPages(PAGE_SIZE, filter)
-  const sentinel = useRef<HTMLDivElement>(null)
+    isPlaceholderData,
+  } = useTransactionPages(PAGE_SIZE, filter, { keepPrevious })
   const [selected, setSelected] = useState<Transaction | null>(null)
-
-  useEffect(() => {
-    const node = sentinel.current
-    // Stop watching after a failed page: retrying on every scroll would hammer
-    // the API. The button below offers the retry instead.
-    if (!node || !hasNextPage || isFetchNextPageError) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !isFetchingNextPage) {
-          void fetchNextPage()
-        }
-      },
-      { rootMargin: '400px 0px' },
-    )
-    observer.observe(node)
-    return () => observer.disconnect()
-  }, [hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage])
+  const sentinel = useLoadMore<HTMLDivElement>({
+    hasNextPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    fetchNextPage,
+  })
 
   if (isLoading) {
     return <div className="h-64 animate-pulse rounded-xl bg-muted" aria-hidden="true" />
@@ -117,12 +77,16 @@ export function TransactionFeed({
         icon={Receipt}
         title={empty?.title ?? 'No transactions yet'}
         description={empty?.description ?? 'Record an income or an expense from Home and it shows up here.'}
+        action={empty?.action}
       />
     )
   }
 
   return (
-    <div className="space-y-5">
+    <div
+      className={cn('space-y-5 transition-opacity', isPlaceholderData && 'opacity-60')}
+      aria-busy={isPlaceholderData || undefined}
+    >
       {byDay(transactions).map((group) => (
         <section key={group.date} aria-label={dayHeading(group.date)} className="space-y-2">
           <h2 className="text-sm font-semibold text-muted-foreground">

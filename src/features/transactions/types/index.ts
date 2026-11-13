@@ -88,6 +88,24 @@ export type ActionInput =
   | TransferInput
   | AdjustmentInput
 
-/** Narrows the activity to one wallet's or one allocation's legs — what their
- * own pages list. Both together: that one pair. */
-export type TransactionFilter = { walletId?: string; fundId?: string }
+/**
+ * The kinds of action the activity can be narrowed to, in the API's words
+ * (`GET /transactions/?type=`). `income` covers a split income's legs too.
+ */
+export type ActionKind = EditableAction
+
+/**
+ * Narrows the activity. `walletId` / `fundId` to one wallet's or one
+ * allocation's legs — what their own pages list (both together: that one
+ * pair); the Transactions table adds a note search, a kind of action and a
+ * period (YYYY-MM-DD, both ends inclusive). Every field is optional and they
+ * all combine.
+ */
+export type TransactionFilter = {
+  walletId?: string
+  fundId?: string
+  q?: string
+  type?: ActionKind
+  start?: string
+  end?: string
+}

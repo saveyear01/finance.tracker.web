@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Delete } from 'lucide-react'
 
 import { env } from '@/config/env'
+import { useIsCompact } from '@/hooks/use-compact'
 import { cn } from '@/lib/utils'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'] as const
@@ -46,6 +47,18 @@ function display(value: string): string {
   return `${symbol}${grouped}${decimals !== undefined ? `.${decimals}` : ''}`
 }
 
+/** Whatever was typed or pasted, as a valid money string — every character
+ * run through the keypad's own rules, so the two can never disagree. */
+export function sanitizeAmount(raw: string): string {
+  let value = ''
+  for (const char of raw.replace(/,/g, '')) {
+    if ((KEYS as readonly string[]).includes(char) && char !== 'back') {
+      value = pressKey(value, char as Key)
+    }
+  }
+  return value
+}
+
 /**
  * The amount entry of the design reference: a big figure and a phone-style
  * keypad. Typing is only ever through the keys (or the keyboard's digits on
@@ -63,6 +76,46 @@ export function AmountPad({
   /** A line under the figure — the available balance, or an error. */
   hint?: ReactNode
 }) {
+  const compact = useIsCompact()
+
+  // From `lg` (design/large-screen.html rule 5): a big screen has a real
+  // keyboard, so the amount is a field you type into, not a keypad.
+  if (!compact) {
+    return (
+      <div>
+        <label className="sr-only" htmlFor="amount-field">
+          Amount
+        </label>
+        <div
+          className={cn(
+            'flex h-16 items-center gap-1 rounded-xl border border-input bg-card px-4 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50',
+            invalid && 'border-destructive focus-within:border-destructive',
+          )}
+        >
+          <span className={cn('figure-lg text-muted-foreground', invalid && 'text-destructive')}>
+            {symbol}
+          </span>
+          <input
+            id="amount-field"
+            // The first thing a form asks for, so it takes the focus.
+            autoFocus
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="0.00"
+            aria-invalid={invalid || undefined}
+            value={value}
+            onChange={(event) => onChange(sanitizeAmount(event.target.value))}
+            className={cn(
+              'min-w-0 flex-1 bg-transparent figure-lg tabular-nums outline-none placeholder:text-muted-foreground',
+              invalid && 'text-destructive',
+            )}
+          />
+        </div>
+        {hint && <div className="mt-1.5 text-sm text-muted-foreground">{hint}</div>}
+      </div>
+    )
+  }
+
   return (
     <div
       // Focusable so desktop users can type digits, "." and Backspace.

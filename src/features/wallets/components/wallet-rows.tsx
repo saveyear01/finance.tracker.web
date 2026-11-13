@@ -23,8 +23,20 @@ const centsOf = (amount: string) => Math.round(Number(amount) * 100)
  *
  * Only what's actually held draws (a negative pair, borrowed against, has
  * no share of anything). A row opens the wallet's own page; no menu.
+ *
+ * `selectedId` marks the wallet open beside the list on a big screen (the
+ * split view): an accent row with a primary bar on its left edge, and
+ * `aria-current` so a screen reader hears which one it is.
  */
-export function WalletRows({ wallets, from }: { wallets: Wallet[]; from: string }) {
+export function WalletRows({
+  wallets,
+  from,
+  selectedId,
+}: {
+  wallets: Wallet[]
+  from: string
+  selectedId?: string
+}) {
   const breakdowns = useWalletBreakdowns()
   const { funds } = useFunds()
   const colors = useMemo(() => fundColors(funds), [funds])
@@ -34,6 +46,7 @@ export function WalletRows({ wallets, from }: { wallets: Wallet[]; from: string 
       {wallets.map((wallet) => {
         const { label, icon: Icon } = WALLET_TYPE_META[wallet.type]
         const archived = wallet.archived_at !== null
+        const selected = wallet.id === selectedId
         const parts = (breakdowns.get(wallet.id) ?? []).filter((item) => centsOf(item.amount) > 0)
         const held = parts.map((item) => centsOf(item.amount))
         const total = held.reduce((sum, cents) => sum + cents, 0)
@@ -49,9 +62,12 @@ export function WalletRows({ wallets, from }: { wallets: Wallet[]; from: string 
             <Link
               to={`/funds/wallets/${wallet.id}`}
               state={{ from }}
+              aria-current={selected ? 'page' : undefined}
               className={cn(
                 'grid grid-cols-[2.25rem_minmax(0,1fr)_auto_1rem] items-center gap-x-3 gap-y-1.5 px-4 py-3 transition-colors outline-none hover:bg-muted/60 focus-visible:bg-muted/60',
                 archived && 'opacity-60',
+                selected &&
+                  'relative bg-accent before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-primary hover:bg-accent focus-visible:bg-accent',
               )}
             >
               <span className="grid size-9 place-items-center rounded-full bg-muted" aria-hidden="true">

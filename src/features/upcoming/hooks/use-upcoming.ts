@@ -10,6 +10,7 @@ import {
   getOccurrence,
   listDue,
   listPinned,
+  listUpcoming,
   payUpcoming,
   pinUpcoming,
   skipUpcoming,
@@ -41,6 +42,16 @@ export function useDue(
     queryFn: () => listDue({ month, ...options }),
   })
   return { ...query, occurrences: query.data ?? [] }
+}
+
+/**
+ * Every bill, whichever month it falls in — only to tell "nothing this
+ * month" from "nothing at all". `enabled` keeps it off where that difference
+ * isn't drawn (a phone, where each tab has its own empty state).
+ */
+export function useUpcomingList({ enabled = true }: { enabled?: boolean } = {}) {
+  const query = useQuery({ queryKey: upcomingKeys.list(), queryFn: listUpcoming, enabled })
+  return { ...query, expenses: query.data ?? [] }
 }
 
 /**

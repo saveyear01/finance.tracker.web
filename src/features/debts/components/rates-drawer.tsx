@@ -18,6 +18,7 @@ import {
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { localToday } from '@/features/transactions'
+import { useIsCompact } from '@/hooks/use-compact'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 
@@ -53,6 +54,7 @@ export function RatesDrawer({
   const add = useAddRate()
   const update = useUpdateRate()
   const remove = useDeleteRate()
+  const compact = useIsCompact()
   // The rate being corrected; null means the form adds a new one.
   const [editing, setEditing] = useState<DebtRate | null>(null)
   const fixed = debt?.rate_kind === 'fixed'
@@ -221,6 +223,9 @@ export function RatesDrawer({
                   </label>
                   <Input
                     id="rate-value"
+                    // The form's only typed field: focused on a big screen,
+                    // left alone on a phone so no keyboard covers the history.
+                    autoFocus={!compact}
                     type="text"
                     inputMode="decimal"
                     placeholder="1.5"

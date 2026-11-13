@@ -25,9 +25,24 @@ const TONES = {
  *
  * A paid-off one is ticked and shows what was paid; no strike-through,
  * which reads as cancelled rather than cleared.
+ *
+ * `selected` marks the debt open beside the list on a big screen (SplitView):
+ * the accent ground and a primary bar down its leading edge.
  */
-export function DebtRow({ debt, rank }: { debt: Debt; rank: number | null }) {
+export function DebtRow({
+  debt,
+  rank,
+  selected = false,
+}: {
+  debt: Debt
+  rank: number | null
+  selected?: boolean
+}) {
   const { pathname } = useLocation()
+  // Back from a debt goes to the LIST, even when the row was tapped beside
+  // another debt (split view) — the page it was "opened from" there is a
+  // debt, and going back to it would be a step sideways.
+  const from = pathname.startsWith('/debts/') ? '/debts' : pathname
   const open = debt.status === 'open'
   const progress = progressOf(debt)
   const rate = formatRate(debt.current_rate)
@@ -44,8 +59,13 @@ export function DebtRow({ debt, rank }: { debt: Debt; rank: number | null }) {
     <li className="border-border not-first:border-t">
       <Link
         to={`/debts/${debt.id}`}
-        state={{ from: pathname }}
-        className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto_1rem] items-center gap-x-3 gap-y-1 px-4 py-3 transition-colors outline-none hover:bg-muted/60 focus-visible:bg-muted/60"
+        state={{ from }}
+        aria-current={selected ? 'page' : undefined}
+        className={cn(
+          'grid grid-cols-[1.75rem_minmax(0,1fr)_auto_1rem] items-center gap-x-3 gap-y-1 px-4 py-3 transition-colors outline-none hover:bg-muted/60 focus-visible:bg-muted/60',
+          selected &&
+            'bg-accent shadow-[inset_3px_0_0_var(--color-primary)] hover:bg-accent focus-visible:bg-accent',
+        )}
       >
         <span
           className={cn(

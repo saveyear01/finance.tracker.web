@@ -76,33 +76,37 @@ export function PasswordForm() {
           />
           <FieldError errors={[errors.current_password]} />
         </Field>
-        <Field>
-          <FieldLabel htmlFor="password-new">New password</FieldLabel>
-          <Input
-            id="password-new"
-            type="password"
-            // `new-password` is what makes a password manager offer to
-            // generate one and save it.
-            autoComplete="new-password"
-            placeholder="At least 8 characters"
-            aria-invalid={Boolean(errors.new_password)}
-            className="h-11 text-base md:text-sm"
-            {...register('new_password')}
-          />
-          <FieldError errors={[errors.new_password]} />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="password-confirm">Confirm new password</FieldLabel>
-          <Input
-            id="password-confirm"
-            type="password"
-            autoComplete="new-password"
-            aria-invalid={Boolean(errors.confirm_password)}
-            className="h-11 text-base md:text-sm"
-            {...register('confirm_password')}
-          />
-          <FieldError errors={[errors.confirm_password]} />
-        </Field>
+        {/* Paired from lg once the card is wide enough (FieldGroup is a
+            container); a phone keeps one field per line. */}
+        <div className="grid gap-4 lg:@md/field-group:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="password-new">New password</FieldLabel>
+            <Input
+              id="password-new"
+              type="password"
+              // `new-password` is what makes a password manager offer to
+              // generate one and save it.
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+              aria-invalid={Boolean(errors.new_password)}
+              className="h-11 text-base md:text-sm"
+              {...register('new_password')}
+            />
+            <FieldError errors={[errors.new_password]} />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="password-confirm">Confirm new password</FieldLabel>
+            <Input
+              id="password-confirm"
+              type="password"
+              autoComplete="new-password"
+              aria-invalid={Boolean(errors.confirm_password)}
+              className="h-11 text-base md:text-sm"
+              {...register('confirm_password')}
+            />
+            <FieldError errors={[errors.confirm_password]} />
+          </Field>
+        </div>
       </FieldGroup>
 
       <Button

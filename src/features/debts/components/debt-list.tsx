@@ -22,12 +22,14 @@ function Section({
   figure,
   action,
   ranked = false,
+  selectedId,
 }: {
   title: string
   debts: Debt[]
   figure: 'remaining' | 'paid'
   action?: ReactNode
   ranked?: boolean
+  selectedId?: string
 }) {
   const cents = debts.reduce((sum, debt) => sum + centsOf(debt[figure]), 0)
   return (
@@ -43,7 +45,12 @@ function Section({
       </h2>
       <ul className="overflow-hidden card-surface text-card-foreground">
         {debts.map((debt, index) => (
-          <DebtRow key={debt.id} debt={debt} rank={ranked ? index + 1 : null} />
+          <DebtRow
+            key={debt.id}
+            debt={debt}
+            rank={ranked ? index + 1 : null}
+            selected={debt.id === selectedId}
+          />
         ))}
       </ul>
     </section>
@@ -64,8 +71,10 @@ function Section({
  *
  * Unlike the other lists, "Add new debt" sits at the BOTTOM: debts are read
  * far more often than they are added.
+ *
+ * `selectedId` is the debt open beside the list on a big screen, if any.
  */
-export function DebtList({ onAdd }: { onAdd: () => void }) {
+export function DebtList({ onAdd, selectedId }: { onAdd: () => void; selectedId?: string }) {
   const { debts, isLoading, isError, error } = useDebts()
   const [ordering, setOrdering] = useState(false)
   const summary = summarize(debts)
@@ -144,6 +153,7 @@ export function DebtList({ onAdd }: { onAdd: () => void }) {
               debts={openDebts}
               figure="remaining"
               ranked
+              selectedId={selectedId}
               action={
                 openDebts.length > 1 && (
                   <button
@@ -157,7 +167,9 @@ export function DebtList({ onAdd }: { onAdd: () => void }) {
               }
             />
           )}
-          {paidOff.length > 0 && <Section title="Paid off" debts={paidOff} figure="paid" />}
+          {paidOff.length > 0 && (
+            <Section title="Paid off" debts={paidOff} figure="paid" selectedId={selectedId} />
+          )}
           {add}
         </>
       )}

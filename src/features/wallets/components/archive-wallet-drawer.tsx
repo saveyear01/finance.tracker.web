@@ -41,8 +41,9 @@ export function ArchiveWalletDrawer({
             {wallet && (
               <>
                 <span className="font-medium text-foreground">{wallet.name}</span>{' '}
-                will be hidden from your wallets. Its history is kept, and you
-                can restore it any time from “Show archived”.
+                will be hidden from your wallets. No money moves: only an empty
+                wallet can be archived. Its history is kept, and you can restore it any time from
+                “Show archived”.
               </>
             )}
           </DrawerDescription>

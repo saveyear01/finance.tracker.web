@@ -41,8 +41,8 @@ export function ArchiveFundDrawer({
             {fund && (
               <>
                 <span className="font-medium text-foreground">{fund.name}</span> will be
-                hidden from your allocations. Its history is kept, and you can restore it any
-                time from “Show archived”.
+                hidden from your allocations. No money moves: only an empty allocation can be
+                archived. Its history is kept, and you can restore it any time from “Show archived”.
               </>
             )}
           </DrawerDescription>

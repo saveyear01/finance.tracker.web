@@ -20,6 +20,10 @@ export function listTransactions({
   cursor,
   walletId,
   fundId,
+  q,
+  type,
+  start,
+  end,
 }: {
   limit: number
   cursor?: string | null
@@ -31,6 +35,10 @@ export function listTransactions({
         ...(cursor && { cursor }),
         ...(walletId && { wallet_id: walletId }),
         ...(fundId && { fund_id: fundId }),
+        ...(q && { q }),
+        ...(type && { type }),
+        ...(start && { start }),
+        ...(end && { end }),
       },
     }),
   )

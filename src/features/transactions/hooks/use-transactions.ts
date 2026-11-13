@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -26,13 +27,23 @@ import type { EditableAction, TransactionFilter } from '../types'
  * Every entry, a page at a time — the Transactions page's infinite scroll,
  * or (with `filter`) a wallet's or an allocation's own page's. Each page's
  * `next_cursor` is the next page's param; a null cursor ends it.
+ *
+ * `keepPrevious` keeps the last filter's rows on screen while a changed
+ * filter loads (`isPlaceholderData` says so) — for a search or the table's
+ * filter bar, where a skeleton per keystroke would flash. Off by default: a
+ * wallet's page showing the previous wallet's rows would be wrong, not calm.
  */
-export function useTransactionPages(pageSize = 20, filter: TransactionFilter = {}) {
+export function useTransactionPages(
+  pageSize = 20,
+  filter: TransactionFilter = {},
+  { keepPrevious = false }: { keepPrevious?: boolean } = {},
+) {
   const query = useInfiniteQuery({
     queryKey: transactionKeys.pages(pageSize, filter),
     queryFn: ({ pageParam }) => listTransactions({ limit: pageSize, cursor: pageParam, ...filter }),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.next_cursor,
+    placeholderData: keepPrevious ? keepPreviousData : undefined,
   })
 
   return {

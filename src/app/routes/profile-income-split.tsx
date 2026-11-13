@@ -1,11 +1,12 @@
 import { PageIntro } from '@/components/layouts/page-intro'
 import { AllocationEditor } from '@/features/allocations'
+import { ProfileLayout } from '@/features/profile'
 
 export function ProfileIncomeSplitRoute() {
   return (
-    <div className="mx-auto w-full max-w-xl space-y-4">
+    <ProfileLayout wide>
       <PageIntro>How every income you log is split across your allocations.</PageIntro>
       <AllocationEditor />
-    </div>
+    </ProfileLayout>
   )
 }

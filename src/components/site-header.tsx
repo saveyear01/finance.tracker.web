@@ -20,14 +20,23 @@ type BackState = { from?: string }
  * the sub-page's own parent otherwise: a direct visit or a reload has no
  * state, and still needs somewhere sensible to go.
  */
-function usePageHeading(): { title: string; back?: string; mobileBack?: string } {
+function usePageHeading(): {
+  title: string
+  back?: string
+  mobileBack?: string
+  splitIn?: string
+} {
   const { pathname, state } = useLocation()
 
   const sub = matchSubPage(pathname)
   if (sub) {
     const from = (state as BackState | null)?.from
     // In-app paths only — state is ours, but a relative path is never meant.
-    return { title: sub.title, back: from?.startsWith('/') ? from : sub.back }
+    return {
+      title: sub.title,
+      back: from?.startsWith('/') ? from : sub.back,
+      splitIn: sub.splitIn,
+    }
   }
 
   const match = NAV_ITEMS.find((item) =>
@@ -64,7 +73,7 @@ function BackButton({ to, className }: { to: string; className?: string }) {
  * accessibility tree.
  */
 export function SiteHeader() {
-  const { title, back, mobileBack } = usePageHeading()
+  const { title, back, mobileBack, splitIn } = usePageHeading()
   const mobileBackTo = back ?? mobileBack
   const { pathname } = useLocation()
   const { user } = useCurrentUser()
@@ -79,8 +88,18 @@ export function SiteHeader() {
             orientation="vertical"
             className="mx-2 h-4 data-vertical:self-auto"
           />
-          {back && <BackButton to={back} className="size-7 rounded-full" />}
-          <h1 className="text-base font-medium">{title}</h1>
+          {/* Inside a split view the list it came from is beside it, so the
+              section leads instead of a back button. */}
+          {back && !splitIn && <BackButton to={back} className="size-7 rounded-full" />}
+          <h1 className="text-base font-medium">
+            {splitIn ? (
+              <>
+                {splitIn} <span className="text-muted-foreground">/ {title}</span>
+              </>
+            ) : (
+              title
+            )}
+          </h1>
         </div>
       </header>
 

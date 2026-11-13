@@ -4,6 +4,8 @@ import * as React from "react"
 import { Drawer as DrawerPrimitive } from "@base-ui/react/drawer"
 import { cn } from "cn"
 
+import { useIsCompact } from "@/hooks/use-compact"
+
 type DrawerContextProps = {
   hasSnapPoints: boolean
   modal: DrawerPrimitive.Root.Props["modal"]
@@ -27,11 +29,16 @@ function Drawer({
   modal = true,
   showSwipeHandle = false,
   snapPoints,
-  swipeDirection = "down",
+  swipeDirection: requestedDirection,
   ...props
 }: DrawerPrimitive.Root.Props & {
   showSwipeHandle?: boolean
 }) {
+  // Local change: a bottom sheet on a phone, a panel from the right from
+  // `lg` (2026-11-13, design/large-screen.html rule 3). Same drawer, same
+  // content; only where it comes from. An explicit direction still wins.
+  const compact = useIsCompact()
+  const swipeDirection = requestedDirection ?? (compact ? "down" : "right")
   const hasSnapPoints = snapPoints != null && snapPoints.length > 0
   const contextValue = React.useMemo(
     () => ({ hasSnapPoints, modal, showSwipeHandle, swipeDirection }),
@@ -99,8 +106,12 @@ function DrawerSwipeHandle({
 function DrawerContent({
   className,
   children,
+  size = "default",
   ...props
-}: DrawerPrimitive.Popup.Props) {
+}: DrawerPrimitive.Popup.Props & {
+  /** As a side panel: 420px, or 520px for long forms (a debt, a bill). */
+  size?: "default" | "wide"
+}) {
   const { hasSnapPoints, modal, showSwipeHandle, swipeDirection } = useDrawer()
   const swipeAxis =
     swipeDirection === "down" || swipeDirection === "up" ? "y" : "x"
@@ -118,6 +129,7 @@ function DrawerContent({
         <DrawerPrimitive.Popup
           data-slot="drawer-popup"
           data-swipe-axis={swipeAxis}
+          data-size={size}
           data-snap-points={hasSnapPoints ? "" : undefined}
           className={cn(
             // Base.
@@ -127,7 +139,7 @@ function DrawerContent({
             // Bleed.
             "after:pointer-events-none after:absolute after:bg-(--drawer-bleed-background,var(--color-popover)) data-[swipe-axis=x]:after:inset-y-0 data-[swipe-axis=x]:after:w-(--bleed) data-[swipe-axis=y]:after:inset-x-0 data-[swipe-axis=y]:after:h-(--bleed) data-[swipe-direction=down]:after:top-full data-[swipe-direction=left]:after:right-full data-[swipe-direction=right]:after:left-full data-[swipe-direction=up]:after:bottom-full",
             // Sizing.
-            "[--drawer-content-height:var(--drawer-height,auto)] data-[swipe-axis=x]:[--drawer-content-width:75%] data-[swipe-axis=y]:[--drawer-content-max-height:calc(100dvh-6rem)] data-[swipe-axis=y]:data-snap-points:[--drawer-content-height:100dvh] data-[swipe-axis=x]:sm:[--drawer-content-width:24rem]",
+            "[--drawer-content-height:var(--drawer-height,auto)] data-[swipe-axis=x]:[--drawer-content-height:100dvh] data-[swipe-axis=x]:[--drawer-content-width:min(100vw,26.25rem)] data-[swipe-axis=x]:data-[size=wide]:[--drawer-content-width:min(100vw,32.5rem)] data-[swipe-axis=y]:[--drawer-content-max-height:calc(100dvh-6rem)] data-[swipe-axis=y]:data-snap-points:[--drawer-content-height:100dvh]",
             // Stack.
             "[--bleed:3rem] [--peek:1rem] [--stack-height:var(--drawer-frontmost-height,var(--drawer-height,0px))] [--stack-peek-offset:max(0px,calc((var(--nested-drawers)-var(--stack-progress))*var(--peek)))] [--stack-progress:clamp(0,var(--drawer-swipe-progress),1)] [--stack-scale-base:max(0,calc(1-(var(--nested-drawers)*var(--stack-step))))] [--stack-scale:clamp(0,calc(var(--stack-scale-base)+(var(--stack-step)*var(--stack-progress))),1)] [--stack-shrink:calc(1-var(--stack-scale))] [--stack-step:0.05]",
             // Transitions.
@@ -148,7 +160,8 @@ function DrawerContent({
           )}
           {...props}
         >
-          {showSwipeHandle && <DrawerSwipeHandle />}
+          {/* A side panel closes with its ✕ / Esc / the backdrop; the handle is a phone affordance. */}
+          {showSwipeHandle && swipeAxis === "y" && <DrawerSwipeHandle />}
           {/*
             Local change to the generated component (re-apply after a
             `shadcn add drawer`): a bottom drawer spans the viewport, so on
@@ -175,7 +188,7 @@ function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="drawer-header"
       className={cn(
-        "flex shrink-0 flex-col gap-0.5 p-4 pb-0 group-data-[swipe-axis=y]/drawer-popup:text-center md:gap-0.5 md:text-left",
+        "flex shrink-0 flex-col gap-0.5 p-4 pb-0 group-data-[swipe-axis=y]/drawer-popup:text-center md:gap-0.5 md:text-left group-data-[swipe-axis=x]/drawer-popup:px-6 group-data-[swipe-axis=x]/drawer-popup:pt-6",
         className
       )}
       {...props}
@@ -187,7 +200,13 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="drawer-footer"
-      className={cn("mt-auto flex shrink-0 flex-col gap-2 p-4 pt-0", className)}
+      className={cn(
+        "mt-auto flex shrink-0 flex-col gap-2 p-4 pt-0",
+        // As a side panel: the buttons side by side along the bottom,
+        // primary still first.
+        "group-data-[swipe-axis=x]/drawer-popup:flex-row group-data-[swipe-axis=x]/drawer-popup:border-t group-data-[swipe-axis=x]/drawer-popup:border-border group-data-[swipe-axis=x]/drawer-popup:px-6 group-data-[swipe-axis=x]/drawer-popup:py-4 group-data-[swipe-axis=x]/drawer-popup:*:flex-1",
+        className
+      )}
       {...props}
     />
   )

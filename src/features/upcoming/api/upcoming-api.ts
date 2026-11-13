@@ -8,6 +8,15 @@ import type {
 } from '../types'
 
 /**
+ * `GET /upcoming-expenses/` — every bill the household has set up, by first
+ * due date. Only asked whether there are any at all: a page with none says
+ * so once, rather than tab by tab.
+ */
+export function listUpcoming(): Promise<UpcomingExpense[]> {
+  return unwrap(apiClient.get<UpcomingExpense[]>('/upcoming-expenses/'))
+}
+
+/**
  * `GET /upcoming-expenses/due/` — bills due in `month` (YYYY-MM), paid or
  * not, soonest first.
  *

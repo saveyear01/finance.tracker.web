@@ -16,6 +16,10 @@ import {
  *
  * Deleting removes the whole bill — every due date of it — so it returns to
  * the list rather than leaving this page showing one that no longer exists.
+ *
+ * From lg it widens to hold the payments beside the card (960px) — still
+ * centred, its own page rather than a pane, since Upcoming's list shares the
+ * width with its calendar.
  */
 export function UpcomingDetailRoute() {
   const { expenseId, dueDate } = useParams()
@@ -26,7 +30,7 @@ export function UpcomingDetailRoute() {
   const [deleting, setDeleting] = useState<UpcomingExpense | null>(null)
 
   return (
-    <div className="mx-auto w-full max-w-xl">
+    <div className="mx-auto w-full max-w-xl lg:max-w-240">
       <UpcomingDetail
         id={expenseId}
         dueDate={dueDate}

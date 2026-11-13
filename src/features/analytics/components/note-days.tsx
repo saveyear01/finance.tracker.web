@@ -76,83 +76,103 @@ export function NoteDays({ kind, note }: { kind: Kind; note: string | null }) {
 
   return (
     <div className="space-y-4">
-      <PeriodPicker range={range} onChange={setRange} />
+      {/* From lg the period sits alone in a toolbar, on the right as on the overview. */}
+      <div className="lg:flex lg:justify-end">
+        <PeriodPicker range={range} onChange={setRange} />
+      </div>
 
-      <section className="rounded-2xl bg-secondary p-5 text-secondary-foreground">
-        <p className="truncate text-sm opacity-80">
-          {words.tab} · <span className={cn(note === null && 'italic')}>{noteLabel(data?.note ?? note)}</span> ·{' '}
-          {rangeLabel(range)}
-        </p>
-        <p className="mt-1 figure-xl">{formatMoney(data?.total ?? 0)}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
-          {shareOfAll !== null && (
-            <span className="rounded-full bg-secondary-foreground/12 px-2 py-0.5 font-semibold">
-              {shareOfAll}% of all {kind === 'income' ? 'income' : 'spending'}
-            </span>
-          )}
-          {data && <span className="opacity-85">{countOf(kind, data.count)}</span>}
-        </div>
-      </section>
+      {/*
+        From lg the hero and the chart sit side by side (1 : 2) — the hero is
+        a few lines, the chart wants the width — and the entries run below.
+        On a phone the chart's card follows the hero as before.
+      */}
+      <div className="space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:items-start lg:gap-4 lg:space-y-0">
+        <section className="rounded-2xl bg-secondary p-5 text-secondary-foreground">
+          <p className="truncate text-sm opacity-80">
+            {words.tab} · <span className={cn(note === null && 'italic')}>{noteLabel(data?.note ?? note)}</span> ·{' '}
+            {rangeLabel(range)}
+          </p>
+          <p className="mt-1 figure-xl">{formatMoney(data?.total ?? 0)}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+            {shareOfAll !== null && (
+              <span className="rounded-full bg-secondary-foreground/12 px-2 py-0.5 font-semibold">
+                {shareOfAll}% of all {kind === 'income' ? 'income' : 'spending'}
+              </span>
+            )}
+            {data && <span className="opacity-85">{countOf(kind, data.count)}</span>}
+          </div>
+        </section>
 
-      {isError ? (
-        <Alert variant="destructive">
-          <AlertDescription>
-            {getApiErrorMessage(error, 'Could not load these figures.')}
-          </AlertDescription>
-        </Alert>
-      ) : isLoading || !data || !stats ? (
-        <Skeleton className="h-72 w-full rounded-xl" />
-      ) : (
-        <div className={cn('space-y-4 transition-opacity', isPlaceholderData && 'opacity-60')}>
-          <section className="space-y-3 card-surface p-4 text-card-foreground">
-            <h2 className="text-sm font-semibold">
-              {words.verb} per {stats.monthly ? 'month' : 'day'}
-            </h2>
-            <DailyChart kind={kind} days={data.days} />
-            <dl className="grid grid-cols-3 gap-3 border-t border-border pt-3 text-sm">
-              <div>
-                <dt className="text-xs text-muted-foreground">Times</dt>
-                <dd className="font-semibold tabular-nums">{data.count}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Average</dt>
-                <dd className="truncate font-semibold tabular-nums">
-                  {stats.averageCents === null ? '—' : formatMoney(stats.averageCents / 100)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs text-muted-foreground">Last</dt>
-                <dd className="truncate font-semibold tabular-nums">
-                  {stats.last ? format(fromIso(stats.last), 'MMM d') : '—'}
-                </dd>
-              </div>
-            </dl>
-          </section>
-
-          {data.entries.length === 0 ? (
-            <EmptyState
-              icon={ChartColumn}
-              title="Nothing in this range"
-              description={`Pick another range to see this note's ${words.many}.`}
-            />
-          ) : (
-            <section className="space-y-4">
-              {byMonth(data.entries).map(([month, entries]) => (
-                <div key={month} className="space-y-2">
-                  <h2 className="px-1 text-xs font-bold tracking-wide text-muted-foreground uppercase">
-                    {format(fromIso(`${month}-01`), 'MMMM yyyy')}
-                  </h2>
-                  <ul className="space-y-2">
-                    {entries.map((entry) => (
-                      <TransactionRow key={entry.id} entry={entry} onSelect={setSelected} />
-                    ))}
-                  </ul>
+        {isError ? (
+          <Alert variant="destructive">
+            <AlertDescription>
+              {getApiErrorMessage(error, 'Could not load these figures.')}
+            </AlertDescription>
+          </Alert>
+        ) : isLoading || !data || !stats ? (
+          <Skeleton className="h-72 w-full rounded-xl" />
+        ) : (
+          // No wrapper: the chart is the grid's second cell and the entries span
+          // its row below, so each carries the dimming itself.
+          <>
+            <section
+              className={cn(
+                'space-y-3 card-surface p-4 text-card-foreground transition-opacity',
+                isPlaceholderData && 'opacity-60',
+              )}
+            >
+              <h2 className="text-sm font-semibold">
+                {words.verb} per {stats.monthly ? 'month' : 'day'}
+              </h2>
+              <DailyChart kind={kind} days={data.days} />
+              <dl className="grid grid-cols-3 gap-3 border-t border-border pt-3 text-sm">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Times</dt>
+                  <dd className="font-semibold tabular-nums">{data.count}</dd>
                 </div>
-              ))}
+                <div>
+                  <dt className="text-xs text-muted-foreground">Average</dt>
+                  <dd className="truncate font-semibold tabular-nums">
+                    {stats.averageCents === null ? '—' : formatMoney(stats.averageCents / 100)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Last</dt>
+                  <dd className="truncate font-semibold tabular-nums">
+                    {stats.last ? format(fromIso(stats.last), 'MMM d') : '—'}
+                  </dd>
+                </div>
+              </dl>
             </section>
-          )}
-        </div>
-      )}
+
+            <div className={cn('transition-opacity lg:col-span-2', isPlaceholderData && 'opacity-60')}>
+              {data.entries.length === 0 ? (
+                <EmptyState
+                  icon={ChartColumn}
+                  title="Nothing in this range"
+                  description={`Pick another range to see this note's ${words.many}.`}
+                />
+              ) : (
+                <section className="space-y-4">
+                  {byMonth(data.entries).map(([month, entries]) => (
+                    <div key={month} className="space-y-2">
+                      <h2 className="px-1 text-xs font-bold tracking-wide text-muted-foreground uppercase">
+                        {format(fromIso(`${month}-01`), 'MMMM yyyy')}
+                      </h2>
+                      {/* Two columns from lg, so a row isn't the page's whole width. */}
+                      <ul className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-2 lg:space-y-0">
+                        {entries.map((entry) => (
+                          <TransactionRow key={entry.id} entry={entry} onSelect={setSelected} />
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </section>
+              )}
+            </div>
+          </>
+        )}
+      </div>
 
       <TransactionDrawer
         entry={selected}

@@ -112,203 +112,209 @@ export function UpcomingDetail({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-28 w-full rounded-xl" />
-        <Skeleton className="h-20 w-full rounded-xl" />
-        <Skeleton className="h-32 w-full rounded-xl" />
-      </div>
-    )
-  }
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-32 w-full rounded-xl" />
+        </div>
+      )
+    }
 
-  if (isError || !occurrence) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          {isError ? getApiErrorMessage(error) : "That due date doesn't exist."}
-        </AlertDescription>
-      </Alert>
-    )
-  }
+    if (isError || !occurrence) {
+      return (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {isError ? getApiErrorMessage(error) : "That due date doesn't exist."}
+          </AlertDescription>
+        </Alert>
+      )
+    }
 
-  const { expense, payments } = occurrence
-  const status = statusOf(occurrence, today)
-  const owed = status === 'overdue' || status === 'partial' || status === 'due'
-  const paidCents = Math.round(Number(occurrence.paid) * 100)
-  const amountCents = Math.round(Number(expense.amount) * 100)
-  // Paid past the bill's amount — `remaining` is negative by that much.
-  const overCents = status === 'paid' ? Math.max(0, paidCents - amountCents) : 0
-  const progress = amountCents > 0 ? Math.min(100, Math.round((paidCents / amountCents) * 100)) : 100
-  const tile = tileParts(occurrence.due_date)
+    const { expense, payments } = occurrence
+    const status = statusOf(occurrence, today)
+    const owed = status === 'overdue' || status === 'partial' || status === 'due'
+    const paidCents = Math.round(Number(occurrence.paid) * 100)
+    const amountCents = Math.round(Number(expense.amount) * 100)
+    // Paid past the bill's amount — `remaining` is negative by that much.
+    const overCents = status === 'paid' ? Math.max(0, paidCents - amountCents) : 0
+    const progress = amountCents > 0 ? Math.min(100, Math.round((paidCents / amountCents) * 100)) : 100
+    const tile = tileParts(occurrence.due_date)
 
-  // No confirmation on either: a skip is one tap to undo, from the toast.
-  const undoSkip = () =>
-    undo.mutate(
-      { id: expense.id, dueDate: occurrence.due_date },
-      {
-        onSuccess: () => toast.success(`${expense.name} is due again.`),
-        onError: (err) => toast.error(getApiErrorMessage(err)),
-      },
-    )
-  const skipOne = () =>
-    skip.mutate(
-      { id: expense.id, dueDate: occurrence.due_date, today },
-      {
+    // No confirmation on either: a skip is one tap to undo, from the toast.
+    const undoSkip = () =>
+      undo.mutate(
+        { id: expense.id, dueDate: occurrence.due_date },
+        {
+          onSuccess: () => toast.success(`${expense.name} is due again.`),
+          onError: (err) => toast.error(getApiErrorMessage(err)),
+        },
+      )
+    const skipOne = () =>
+      skip.mutate(
+        { id: expense.id, dueDate: occurrence.due_date, today },
+        {
+          onSuccess: () =>
+            toast.success(`${expense.name} skipped.`, {
+              action: { label: 'Undo', onClick: undoSkip },
+            }),
+          onError: (err) => toast.error(getApiErrorMessage(err)),
+        },
+      )
+
+    // The pin is the bill's, not this date's: the same either way, and the
+    // toast says where it went rather than leaving the tap silent.
+    const isPinned = expense.pinned_at !== null
+    const togglePin = () =>
+      (isPinned ? unpin : pin).mutate(expense.id, {
         onSuccess: () =>
-          toast.success(`${expense.name} skipped.`, {
-            action: { label: 'Undo', onClick: undoSkip },
-          }),
+          toast.success(
+            isPinned ? `${expense.name} unpinned from Home.` : `${expense.name} pinned to Home.`,
+          ),
         onError: (err) => toast.error(getApiErrorMessage(err)),
-      },
-    )
+      })
 
-  // The pin is the bill's, not this date's: the same either way, and the
-  // toast says where it went rather than leaving the tap silent.
-  const isPinned = expense.pinned_at !== null
-  const togglePin = () =>
-    (isPinned ? unpin : pin).mutate(expense.id, {
-      onSuccess: () =>
-        toast.success(
-          isPinned ? `${expense.name} unpinned from Home.` : `${expense.name} pinned to Home.`,
-        ),
-      onError: (err) => toast.error(getApiErrorMessage(err)),
-    })
-
-  return (
-    <div className="space-y-4">
-      {/* The date leads — what an upcoming expense IS, is a day it falls due
-          — and the figure it comes to sits under it, so the page has one
-          thing to look at rather than three small boxes of equal weight. */}
-      <section className="overflow-hidden card-surface text-card-foreground">
-        <div className="flex items-center gap-4 p-4">
-          <div
-            className={cn(
-              'grid size-16 shrink-0 place-items-center rounded-xl',
-              TILE_TONE[status],
-            )}
-          >
-            <span className="text-[0.65rem] font-medium tracking-widest opacity-80">
-              {tile.month}
-            </span>
-            <span className="-mt-1 text-2xl leading-none font-semibold tabular-nums">
-              {tile.day}
-            </span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-lg font-medium">{expense.name}</p>
-            {/* How late, or how soon — the tile beside it already says the day. */}
-            <p className={cn('text-sm', WHEN_TONE[status])}>{whenText(occurrence, today)}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {RECURRENCE_LABELS[expense.recurrence]} · {formatMoney(expense.amount)}
-            </p>
-          </div>
-        </div>
-
-        {/* Paid past the amount: the headline becomes the overrun, negative
-            and red — "−₱2,000.00 over budget" is the figure the user wants
-            to see, not a total that stops at "paid". */}
-        <div className="border-t border-border px-4 py-4">
-          <p className="text-xs text-muted-foreground">
-            {owed
-              ? 'Still to pay'
-              : overCents > 0
-                ? 'Over budget'
-                : status === 'paid'
-                  ? 'Paid in full'
-                  : 'Paid before skipping'}
-          </p>
-          <p
-            className={cn(
-              'mt-0.5 figure-lg',
-              overCents > 0 && 'text-destructive',
-            )}
-          >
-            {overCents > 0
-              ? `−${formatMoney(overCents / 100)}`
-              : formatMoney(owed ? occurrence.remaining : occurrence.paid)}
-          </p>
-
-          {paidCents > 0 && (
-            <>
-              <div
-                className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted"
-                role="progressbar"
-                aria-valuenow={progress}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label={`${expense.name} paid`}
-              >
-                <div
-                  className={cn(
-                    'h-full rounded-full',
-                    status === 'paid' ? 'bg-success' : 'bg-primary',
-                  )}
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                {formatMoney(occurrence.paid)} of {formatMoney(expense.amount)} paid · {progress}%
+    // From lg the payments sit beside the card rather than under it, so the
+    // whole story of the date — where it stands and how it got there — is on
+    // one screen. Below lg the same three blocks stack in reading order:
+    // card and actions, payments, then delete.
+    return (
+      <div className="space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] lg:items-start lg:gap-x-6 lg:gap-y-4 lg:space-y-0">
+        <div className="space-y-4">
+        {/* The date leads — what an upcoming expense IS, is a day it falls due
+            — and the figure it comes to sits under it, so the page has one
+            thing to look at rather than three small boxes of equal weight. */}
+        <section className="overflow-hidden card-surface text-card-foreground">
+          <div className="flex items-center gap-4 p-4">
+            <div
+              className={cn(
+                'grid size-16 shrink-0 place-items-center rounded-xl',
+                TILE_TONE[status],
+              )}
+            >
+              <span className="text-[0.65rem] font-medium tracking-widest opacity-80">
+                {tile.month}
+              </span>
+              <span className="-mt-1 text-2xl leading-none font-semibold tabular-nums">
+                {tile.day}
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-lg font-medium">{expense.name}</p>
+              {/* How late, or how soon — the tile beside it already says the day. */}
+              <p className={cn('text-sm', WHEN_TONE[status])}>{whenText(occurrence, today)}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {RECURRENCE_LABELS[expense.recurrence]} · {formatMoney(expense.amount)}
               </p>
-            </>
+            </div>
+          </div>
+
+          {/* Paid past the amount: the headline becomes the overrun, negative
+              and red — "−₱2,000.00 over budget" is the figure the user wants
+              to see, not a total that stops at "paid". */}
+          <div className="border-t border-border px-4 py-4">
+            <p className="text-xs text-muted-foreground">
+              {owed
+                ? 'Still to pay'
+                : overCents > 0
+                  ? 'Over budget'
+                  : status === 'paid'
+                    ? 'Paid in full'
+                    : 'Paid before skipping'}
+            </p>
+            <p
+              className={cn(
+                'mt-0.5 figure-lg',
+                overCents > 0 && 'text-destructive',
+              )}
+            >
+              {overCents > 0
+                ? `−${formatMoney(overCents / 100)}`
+                : formatMoney(owed ? occurrence.remaining : occurrence.paid)}
+            </p>
+
+            {paidCents > 0 && (
+              <>
+                <div
+                  className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted"
+                  role="progressbar"
+                  aria-valuenow={progress}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`${expense.name} paid`}
+                >
+                  <div
+                    className={cn(
+                      'h-full rounded-full',
+                      status === 'paid' ? 'bg-success' : 'bg-primary',
+                    )}
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {formatMoney(occurrence.paid)} of {formatMoney(expense.amount)} paid · {progress}%
+                </p>
+              </>
+            )}
+            {paidCents === 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">nothing paid yet</p>
+            )}
+          </div>
+
+          <label className="flex cursor-pointer items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm">
+            <span className="flex items-center gap-2">
+              <Pin className="size-4 text-muted-foreground" aria-hidden="true" />
+              Pin to Home
+            </span>
+            <Switch
+              checked={isPinned}
+              onCheckedChange={togglePin}
+              disabled={pin.isPending || unpin.isPending}
+            />
+          </label>
+        </section>
+
+        {/* Pay is the whole point of the page, so it gets the full width and
+            nothing to compete with. The rest sit under it, plainly secondary —
+            a row of equal buttons made none of them look like the one to press.
+            A paid bill can still be paid — more goes over its amount — so only
+            a skipped one loses the button, quieter once paid. */}
+        {status !== 'skipped' && (
+          <Button
+            size="lg"
+            variant={owed ? 'default' : 'outline'}
+            className="h-12 w-full text-base"
+            onClick={() => onPay(occurrence)}
+          >
+            <Wallet />
+            {owed ? 'Pay this bill' : 'Pay more'}
+          </Button>
+        )}
+        <div className="flex gap-2">
+          {owed && occurrence.due_date < today && (
+            <Button variant="outline" className="h-11 flex-1" onClick={skipOne}>
+              <CircleSlash />
+              Skip
+            </Button>
           )}
-          {paidCents === 0 && (
-            <p className="mt-1 text-xs text-muted-foreground">nothing paid yet</p>
+          {status === 'skipped' && (
+            <Button variant="outline" className="h-11 flex-1" onClick={undoSkip}>
+              <Undo2 />
+              Unskip
+            </Button>
           )}
+          <Button variant="outline" className="h-11 flex-1" onClick={() => onEdit(expense)}>
+            <Pencil />
+            Edit
+          </Button>
         </div>
 
-        <label className="flex cursor-pointer items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm">
-          <span className="flex items-center gap-2">
-            <Pin className="size-4 text-muted-foreground" aria-hidden="true" />
-            Pin to Home
-          </span>
-          <Switch
-            checked={isPinned}
-            onCheckedChange={togglePin}
-            disabled={pin.isPending || unpin.isPending}
-          />
-        </label>
-      </section>
-
-      {/* Pay is the whole point of the page, so it gets the full width and
-          nothing to compete with. The rest sit under it, plainly secondary —
-          a row of equal buttons made none of them look like the one to press.
-          A paid bill can still be paid — more goes over its amount — so only
-          a skipped one loses the button, quieter once paid. */}
-      {status !== 'skipped' && (
-        <Button
-          size="lg"
-          variant={owed ? 'default' : 'outline'}
-          className="h-12 w-full text-base"
-          onClick={() => onPay(occurrence)}
-        >
-          <Wallet />
-          {owed ? 'Pay this bill' : 'Pay more'}
-        </Button>
-      )}
-      <div className="flex gap-2">
-        {owed && occurrence.due_date < today && (
-          <Button variant="outline" className="h-11 flex-1" onClick={skipOne}>
-            <CircleSlash />
-            Skip
-          </Button>
+        {expense.note && (
+          <p className="card-surface p-3 text-sm text-muted-foreground">
+            {expense.note}
+          </p>
         )}
-        {status === 'skipped' && (
-          <Button variant="outline" className="h-11 flex-1" onClick={undoSkip}>
-            <Undo2 />
-            Unskip
-          </Button>
-        )}
-        <Button variant="outline" className="h-11 flex-1" onClick={() => onEdit(expense)}>
-          <Pencil />
-          Edit
-        </Button>
       </div>
 
-      {expense.note && (
-        <p className="card-surface p-3 text-sm text-muted-foreground">
-          {expense.note}
-        </p>
-      )}
-
-      <section className="space-y-3">
+      <section className="space-y-3 lg:row-span-2 lg:card-surface lg:p-4 lg:text-card-foreground">
         <h2 className="font-semibold">
           Payments{payments.length > 1 && ` · ${payments.length}`}
         </h2>
@@ -357,7 +363,7 @@ export function UpcomingDetail({
 
       {/* Apart from the rest on purpose: this deletes the whole bill, every
           due date of it, not just the one being looked at. */}
-      <div className="pt-2">
+      <div className="pt-2 lg:col-start-1 lg:pt-0">
         <Button
           variant="outline"
           className="w-full text-destructive"

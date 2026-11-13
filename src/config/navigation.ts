@@ -56,6 +56,12 @@ export type SubPage = {
   title: string
   /** Where the header's back button goes — the page it was opened from. */
   back: string
+  /**
+   * The section it opens INSIDE on a big screen (`SplitView`, from lg): the
+   * desktop header then reads "Funds / Wallet" with no back button, since
+   * the list it came from is still beside it. Phones keep the back button.
+   */
+  splitIn?: string
 }
 
 /**
@@ -64,14 +70,24 @@ export type SubPage = {
  * instead of the avatar; the nav keeps their parent highlighted.
  */
 export const SUB_PAGES: SubPage[] = [
-  { path: '/profile/settings', title: 'Profile settings', back: '/profile' },
-  { path: '/profile/income-split', title: 'Income split', back: '/profile' },
-  { path: '/profile/export', title: 'Export data', back: '/profile' },
+  { path: '/profile/settings', title: 'Profile settings', back: '/profile', splitIn: 'Profile' },
+  { path: '/profile/income-split', title: 'Income split', back: '/profile', splitIn: 'Profile' },
+  { path: '/profile/export', title: 'Export data', back: '/profile', splitIn: 'Profile' },
   // One wallet's and one allocation's own page (2026-11-11), back to their tab.
-  { path: '/funds/wallets/:walletId', title: 'Wallet', back: '/funds?tab=wallets' },
-  { path: '/funds/allocations/:fundId', title: 'Allocation', back: '/funds?tab=allocations' },
+  {
+    path: '/funds/wallets/:walletId',
+    title: 'Wallet',
+    back: '/funds?tab=wallets',
+    splitIn: 'Funds',
+  },
+  {
+    path: '/funds/allocations/:fundId',
+    title: 'Allocation',
+    back: '/funds?tab=allocations',
+    splitIn: 'Funds',
+  },
   // One debt in full. `:debtId` stands for any one segment — see `matchSubPage`.
-  { path: '/debts/:debtId', title: 'Debt', back: '/debts' },
+  { path: '/debts/:debtId', title: 'Debt', back: '/debts', splitIn: 'Debts' },
   // One due date of one bill.
   { path: '/upcoming/:expenseId/:dueDate', title: 'Upcoming expense', back: '/upcoming' },
   // One note's expenses or income; the tab, note and range are in the query.

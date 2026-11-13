@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AllocationBanner } from '@/features/allocations'
-import { FundDrawer, FundRows, useFunds, type Fund } from '@/features/funds'
+import { allocationGroups, FundDrawer, FundRows, useFunds, type Fund } from '@/features/funds'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 
@@ -24,19 +24,18 @@ const sumOf = (funds: Fund[]) =>
  * rows: **Counted on Home** — the allocations in Home's balance — and **Set
  * aside**, the ones left out. Each row opens the allocation's own page, where
  * that switch, Rename and Archive live. Archived ones are a link under both.
+ * An empty Unallocated is left out (`allocationGroups`).
+ *
+ * `selectedId` is the allocation open beside the list on a big screen. When
+ * that one is archived the archived rows show, so the open row is never
+ * hidden.
  */
-export function AllocationsTab() {
-  const [showArchived, setShowArchived] = useState(false)
+export function AllocationsTab({ selectedId }: { selectedId?: string }) {
+  const [expanded, setExpanded] = useState(false)
   const [adding, setAdding] = useState(false)
   const { funds, isLoading, isError, error } = useFunds({ includeArchived: true })
-  // Unallocated only once it holds something (or is borrowed against): an
-  // empty one is just noise above the allocations the user made.
-  const active = funds.filter(
-    (fund) => fund.archived_at === null && !(fund.is_unallocated && Number(fund.balance) === 0),
-  )
-  const counted = active.filter((fund) => fund.in_total)
-  const aside = active.filter((fund) => !fund.in_total)
-  const archived = funds.filter((fund) => fund.archived_at !== null)
+  const { active, counted, aside, archived } = allocationGroups(funds)
+  const showArchived = expanded || archived.some((fund) => fund.id === selectedId)
 
   return (
     <div className="space-y-3">
@@ -77,7 +76,7 @@ export function AllocationsTab() {
                     {formatMoney(sumOf(group.items))}
                   </span>
                 </h2>
-                <FundRows funds={group.items} from={FROM} />
+                <FundRows funds={group.items} from={FROM} selectedId={selectedId} />
               </section>
             ))}
         </>
@@ -87,10 +86,10 @@ export function AllocationsTab() {
         (showArchived ? (
           <section className="space-y-2 pt-2">
             <h2 className="px-0.5 text-sm font-semibold text-muted-foreground">Archived · {archived.length}</h2>
-            <FundRows funds={archived} from={FROM} />
+            <FundRows funds={archived} from={FROM} selectedId={selectedId} />
           </section>
         ) : (
-          <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setShowArchived(true)}>
+          <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setExpanded(true)}>
             Show {archived.length} archived
           </Button>
         ))}

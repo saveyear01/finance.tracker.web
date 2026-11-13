@@ -18,6 +18,9 @@ import { QuickActions } from './quick-actions'
  * When some are left out, a line under the figure says how much they hold
  * and opens the allocations, where "Count in total" is changed (2026-11-11).
  *
+ * With no wallet yet (a household's first run) the actions are dimmed and
+ * the line under the figure says what comes first (2026-11-13).
+ *
  * Drawn in theme tokens — the band in `primary`, the card in the ink-teal
  * `secondary`. In dark mode the band steps down to a mint tint of the card,
  * so the figure, not the label, is the brightest thing on it.
@@ -27,6 +30,7 @@ export function BalanceCard({
   counted,
   allocationCount,
   setAsideCents,
+  hasWallet = true,
   onAction,
 }: {
   /** Decimal string — the sum of the allocations that count. */
@@ -37,6 +41,8 @@ export function BalanceCard({
   allocationCount: number
   /** What the allocations left out hold, in cents. */
   setAsideCents: number
+  /** False before the first wallet: nothing can be recorded yet. */
+  hasWallet?: boolean
   onAction: (action: LedgerAction) => void
 }) {
   const noun = allocationCount === 1 ? 'allocation' : 'allocations'
@@ -54,7 +60,7 @@ export function BalanceCard({
   return (
     <section className="overflow-hidden rounded-xl bg-secondary text-secondary-foreground">
       <div className="bg-primary px-5 py-2 text-xs font-medium text-primary-foreground dark:bg-secondary-accent/15 dark:text-secondary-accent">
-        Total balance · {scope}
+        Total balance{allocationCount > 0 && ` · ${scope}`}
       </div>
 
       <div className="px-5 pt-4 pb-5">
@@ -62,6 +68,9 @@ export function BalanceCard({
           {whole}
           <span className="text-secondary-foreground/50">{cents}</span>
         </p>
+        {!hasWallet && (
+          <p className="mt-1 text-xs text-secondary-foreground/80">Add a wallet to start recording</p>
+        )}
         {counted < allocationCount && setAsideCents !== 0 && (
           <Link
             to="/funds?tab=allocations"
@@ -75,7 +84,7 @@ export function BalanceCard({
           </Link>
         )}
 
-        <QuickActions className="mt-5" onAction={onAction} />
+        <QuickActions className="mt-5" onAction={onAction} disabled={!hasWallet} />
       </div>
     </section>
   )

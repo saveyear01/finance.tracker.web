@@ -4,11 +4,14 @@ import { toast } from 'sonner'
 
 import { BreakdownList } from '@/components/breakdown-list'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { fundColors, useFunds } from '@/features/funds'
+import { useIsCompact } from '@/hooks/use-compact'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
+import { cn } from '@/lib/utils'
 
 import { useWalletBreakdowns } from '../hooks/use-wallet-breakdowns'
 import { useRestoreWallet } from '../hooks/use-mutate-wallet'
@@ -29,6 +32,10 @@ import type { Wallet } from '../types'
  *
  * An archived wallet can only be restored. Archive stays visible but
  * disabled while the wallet holds anything, with the reason.
+ *
+ * From `lg` it is the right-hand pane beside the Funds list, laid out wider:
+ * the name with Edit / Archive as a header, then the hero and the split side
+ * by side. Below `lg`, one column as before.
  */
 export function WalletDetail({
   id,
@@ -48,6 +55,7 @@ export function WalletDetail({
   const { funds } = useFunds()
   const colors = useMemo(() => fundColors(funds), [funds])
   const restore = useRestoreWallet()
+  const compact = useIsCompact()
 
   if (isLoading) {
     return (
@@ -74,78 +82,136 @@ export function WalletDetail({
   const point = formatted.lastIndexOf('.')
   const [whole, cents] = point === -1 ? [formatted, ''] : [formatted.slice(0, point), formatted.slice(point)]
 
+  const restoreButton = (className: string) => (
+    <Button
+      variant="outline"
+      className={className}
+      disabled={restore.isPending}
+      onClick={() =>
+        restore.mutate(wallet.id, {
+          onSuccess: () => toast.success(`${wallet.name} restored.`),
+          onError: (err) => toast.error(getApiErrorMessage(err)),
+        })
+      }
+    >
+      <ArchiveRestore />
+      Restore
+    </Button>
+  )
+  const editButton = (className?: string) => (
+    <Button variant="outline" className={className} onClick={() => onEdit(wallet)}>
+      <Pencil />
+      Edit
+    </Button>
+  )
+  const archiveButton = (className?: string) => (
+    <Button
+      variant="outline"
+      className={cn('text-destructive', className)}
+      disabled={!canArchive(wallet)}
+      onClick={() => onArchive(wallet)}
+    >
+      <Archive />
+      Archive
+    </Button>
+  )
+  const archiveReason = !canArchive(wallet) && (
+    <p className="text-right text-xs text-muted-foreground">Archive: only an empty wallet.</p>
+  )
+
+  const hero = (
+    <section className="rounded-xl bg-secondary px-5 pt-4 pb-5 text-secondary-foreground">
+      <p className="flex items-center gap-2.5 text-sm text-secondary-foreground/90">
+        <span className="grid size-8 place-items-center rounded-full bg-secondary-foreground/15" aria-hidden="true">
+          <Icon className="size-4" />
+        </span>
+        {/* On a big screen the name heads the pane, so the card needn't repeat it. */}
+        <span className="truncate font-medium">{compact ? `${wallet.name} · ${label}` : 'In this wallet'}</span>
+        {compact && archived && (
+          <span className="rounded-full bg-secondary-foreground/15 px-2 py-0.5 text-xs">Archived</span>
+        )}
+      </p>
+      <p className="mt-3 figure-xl">
+        {whole}
+        <span className="text-secondary-foreground/50">{cents}</span>
+      </p>
+      <p className="mt-1 text-xs text-secondary-foreground/75">
+        {holding === 0 ? 'Empty' : `Holds ${holding} ${holding === 1 ? 'allocation' : 'allocations'}`}
+      </p>
+      {!archived && <div className="mt-5">{actions}</div>}
+    </section>
+  )
+
+  const split = (
+    <section className="space-y-3 card-surface p-4 text-card-foreground">
+      <h2 className="flex items-baseline justify-between gap-2 text-sm font-semibold">
+        What it holds
+        <span className="text-xs font-normal text-muted-foreground">by allocation</span>
+      </h2>
+      <BreakdownList items={items} empty="Nothing in this wallet yet." />
+    </section>
+  )
+
+  const activitySection = (
+    <section className="space-y-3">
+      <h2 className="text-sm font-semibold">Activity</h2>
+      {activity}
+    </section>
+  )
+
+  if (!compact) {
+    // A big screen (design/large-screen.html, "Funds"): the name and its
+    // buttons head the pane, the hero and the split share a row, and the
+    // activity runs below at full width.
+    return (
+      <div className="space-y-4">
+        <header className="flex items-start justify-between gap-4">
+          <h2 className="flex min-w-0 items-center gap-2 pt-1 text-lg font-semibold">
+            <span className="truncate">{wallet.name}</span>
+            <Badge variant="secondary">{label}</Badge>
+            {archived && <Badge variant="outline">Archived</Badge>}
+          </h2>
+          <div className="shrink-0 space-y-1">
+            <div className="flex justify-end gap-2">
+              {archived ? (
+                restoreButton('')
+              ) : (
+                <>
+                  {editButton()}
+                  {archiveButton()}
+                </>
+              )}
+            </div>
+            {!archived && archiveReason}
+          </div>
+        </header>
+        <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-4">
+          {hero}
+          {split}
+        </div>
+        {activitySection}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
-      <section className="rounded-xl bg-secondary px-5 pt-4 pb-5 text-secondary-foreground">
-        <p className="flex items-center gap-2.5 text-sm text-secondary-foreground/90">
-          <span className="grid size-8 place-items-center rounded-full bg-secondary-foreground/15" aria-hidden="true">
-            <Icon className="size-4" />
-          </span>
-          <span className="truncate font-medium">
-            {wallet.name} · {label}
-          </span>
-          {archived && <span className="rounded-full bg-secondary-foreground/15 px-2 py-0.5 text-xs">Archived</span>}
-        </p>
-        <p className="mt-3 figure-xl">
-          {whole}
-          <span className="text-secondary-foreground/50">{cents}</span>
-        </p>
-        <p className="mt-1 text-xs text-secondary-foreground/75">
-          {holding === 0 ? 'Empty' : `Holds ${holding} ${holding === 1 ? 'allocation' : 'allocations'}`}
-        </p>
-        {!archived && <div className="mt-5">{actions}</div>}
-      </section>
-
-      <section className="space-y-3 card-surface p-4 text-card-foreground">
-        <h2 className="flex items-baseline justify-between gap-2 text-sm font-semibold">
-          What it holds
-          <span className="text-xs font-normal text-muted-foreground">by allocation</span>
-        </h2>
-        <BreakdownList items={items} empty="Nothing in this wallet yet." />
-      </section>
+      {hero}
+      {split}
 
       {archived ? (
-        <Button
-          variant="outline"
-          className="h-11 w-full"
-          disabled={restore.isPending}
-          onClick={() =>
-            restore.mutate(wallet.id, {
-              onSuccess: () => toast.success(`${wallet.name} restored.`),
-              onError: (err) => toast.error(getApiErrorMessage(err)),
-            })
-          }
-        >
-          <ArchiveRestore />
-          Restore
-        </Button>
+        restoreButton('h-11 w-full')
       ) : (
         <div className="space-y-1.5">
           <div className="flex gap-2">
-            <Button variant="outline" className="h-11 flex-1" onClick={() => onEdit(wallet)}>
-              <Pencil />
-              Edit
-            </Button>
-            <Button
-              variant="outline"
-              className="h-11 flex-1 text-destructive"
-              disabled={!canArchive(wallet)}
-              onClick={() => onArchive(wallet)}
-            >
-              <Archive />
-              Archive
-            </Button>
+            {editButton('h-11 flex-1')}
+            {archiveButton('h-11 flex-1')}
           </div>
-          {!canArchive(wallet) && (
-            <p className="text-right text-xs text-muted-foreground">Archive: only an empty wallet.</p>
-          )}
+          {archiveReason}
         </div>
       )}
 
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold">Activity</h2>
-        {activity}
-      </section>
+      {activitySection}
     </div>
   )
 }

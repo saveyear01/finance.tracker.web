@@ -19,7 +19,8 @@ export function LargestCard({
   return (
     <section className="space-y-2">
       <h2 className="text-sm font-semibold">{kind === 'income' ? 'Biggest incomes' : 'Biggest expenses'}</h2>
-      <ul className="space-y-2">
+      {/* Full width from lg: two columns, so a row isn't 1,200px from its note to its amount. */}
+      <ul className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-2 lg:space-y-0">
         {entries.map((entry) => (
           <TransactionRow key={entry.id} entry={entry} onSelect={onSelect} />
         ))}

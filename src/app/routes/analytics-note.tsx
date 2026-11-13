@@ -12,7 +12,7 @@ export function AnalyticsNoteRoute() {
   const [params] = useSearchParams()
 
   return (
-    <div className="mx-auto w-full max-w-xl">
+    <div className="mx-auto w-full max-w-xl lg:max-w-310">
       <NoteDays kind={kindFromParams(params)} note={params.get('note')} />
     </div>
   )

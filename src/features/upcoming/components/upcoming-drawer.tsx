@@ -1,10 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type Ref } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 
-import { AmountPad } from '@/components/amount-pad'
+import { AmountPad, sanitizeAmount } from '@/components/amount-pad'
 import { DatePicker } from '@/components/date-picker'
 import { SegmentedControl, type SegmentOption } from '@/components/segmented-control'
 import { Stepper } from '@/components/stepper'
@@ -20,11 +20,14 @@ import {
 } from '@/components/ui/drawer'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { env } from '@/config/env'
 import { localToday } from '@/features/transactions'
+import { useIsCompact } from '@/hooks/use-compact'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 
 import { useCreateUpcoming, useUpdateUpcoming } from '../hooks/use-upcoming'
+import { readBack } from '../lib/read-back'
 import { upcomingSchema, type UpcomingFormValues } from '../schemas/upcoming-schemas'
 import type { Recurrence, UpcomingExpense } from '../types'
 
@@ -38,6 +41,52 @@ const RECURRENCE_OPTIONS: SegmentOption<Recurrence>[] = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'yearly', label: 'Yearly' },
 ]
+
+const SYMBOL =
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: env.CURRENCY })
+    .formatToParts(0)
+    .find((part) => part.type === 'currency')?.value ?? ''
+
+/**
+ * The amount as an ordinary field beside the name, for the one-screen form
+ * on a big screen: AmountPad's typed field is a headline that takes the
+ * focus, which belongs to the name here. Same sanitising, same string.
+ */
+function MoneyField({
+  id,
+  value,
+  onChange,
+  onBlur,
+  inputRef,
+  invalid,
+}: {
+  id: string
+  value: string
+  onChange: (value: string) => void
+  onBlur: () => void
+  inputRef: Ref<HTMLInputElement>
+  invalid: boolean
+}) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute inset-y-0 left-3 grid place-items-center text-muted-foreground">
+        {SYMBOL}
+      </span>
+      <Input
+        id={id}
+        ref={inputRef}
+        inputMode="decimal"
+        autoComplete="off"
+        placeholder="0.00"
+        className="h-11 pl-7 font-semibold tabular-nums text-base md:text-sm"
+        aria-invalid={invalid}
+        value={value}
+        onChange={(event) => onChange(sanitizeAmount(event.target.value))}
+        onBlur={onBlur}
+      />
+    </div>
+  )
+}
 
 /** A stored amount as the keypad would have typed it: "1500", "1500.50". */
 function asTyped(amount: string): string {
@@ -58,9 +107,12 @@ function valuesFor(expense: UpcomingExpense | null): UpcomingFormValues {
 }
 
 /**
- * Add a bill, or edit one — in two steps, so the keypad gets a screen of its
- * own: first what it is and when (name, due date, repeats, note), then how
- * much. Repeating starts on "Every month"; most bills do. Editing the first
+ * Add a bill, or edit one. On a phone in two steps, so the keypad gets a
+ * screen of its own: first what it is and when (name, due date, repeats,
+ * note), then how much. From `lg` the amount is typed, so there is no keypad
+ * screen to make room for: it is ONE form in a wide panel (decided
+ * 2026-11-13) — name and amount paired, then the date and repeats, with the
+ * plan read back in words under them. Repeating starts on "Every month"; most bills do. Editing the first
  * due date or the repeat reshapes every due date.
  */
 export function UpcomingDrawer({
@@ -76,7 +128,10 @@ export function UpcomingDrawer({
   const create = useCreateUpcoming()
   const update = useUpdateUpcoming()
   const mutation = expense ? update : create
+  const compact = useIsCompact()
   const [step, setStep] = useState(0)
+  // One form from `lg`, whatever step a phone-width window had reached.
+  const oneStep = !compact
 
   const {
     register,
@@ -89,7 +144,11 @@ export function UpcomingDrawer({
     resolver: zodResolver(upcomingSchema),
     defaultValues: valuesFor(null),
   })
-  const amount = useWatch({ control, name: 'amount' })
+  const [amount, dueDate, recurrence] = useWatch({
+    control,
+    name: ['amount', 'due_date', 'recurrence'],
+  })
+  const plan = readBack(dueDate, recurrence)
 
   // The drawer stays mounted between openings; start over each time.
   useEffect(() => {
@@ -124,10 +183,10 @@ export function UpcomingDrawer({
     else create.mutate(input, done)
   })
 
-  // Enter on the first step moves on rather than saving a form whose
-  // amount hasn't been asked for yet.
+  // Enter on the phone's first step moves on rather than saving a form whose
+  // amount hasn't been asked for yet. The one-step form just saves.
   const onSubmit = async (event: FormEvent) => {
-    if (step === 0) {
+    if (!oneStep && step === 0) {
       event.preventDefault()
       if (await trigger(DETAILS)) setStep(1)
       return
@@ -135,92 +194,156 @@ export function UpcomingDrawer({
     await save(event)
   }
 
+  const nameField = (
+    <div className="space-y-1.5">
+      <label htmlFor="upcoming-name" className="text-sm font-medium">
+        Name
+      </label>
+      <Input
+        id="upcoming-name"
+        // The first field of the one-step form takes the focus; a phone's
+        // first step keeps today's behaviour (no keyboard thrown up).
+        autoFocus={oneStep}
+        placeholder="Rent, Internet, Insurance…"
+        autoComplete="off"
+        className="h-11 text-base md:text-sm"
+        aria-invalid={Boolean(errors.name)}
+        {...register('name')}
+      />
+      <FieldError errors={[errors.name]} />
+    </div>
+  )
+
+  const whenFields = (
+    <div className="space-y-2">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <label htmlFor="upcoming-due" className="text-sm font-medium">
+            {expense || oneStep ? 'First due' : 'Due'}
+          </label>
+          <Controller
+            control={control}
+            name="due_date"
+            render={({ field }) => (
+              <DatePicker
+                id="upcoming-due"
+                value={field.value}
+                onChange={field.onChange}
+                invalid={Boolean(errors.due_date)}
+              />
+            )}
+          />
+          <FieldError errors={[errors.due_date]} />
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-sm font-medium" aria-hidden="true">
+            Repeats
+          </p>
+          <Controller
+            control={control}
+            name="recurrence"
+            render={({ field }) => (
+              <SegmentedControl
+                label="Repeats"
+                value={field.value}
+                onChange={field.onChange}
+                options={RECURRENCE_OPTIONS}
+              />
+            )}
+          />
+        </div>
+      </div>
+      {/* The plan in words, so a wrong "Monthly" is caught before saving. */}
+      {plan && (
+        <p className="text-xs text-muted-foreground" aria-live="polite">
+          {plan}
+        </p>
+      )}
+    </div>
+  )
+
+  const noteField = (
+    <div className="space-y-1.5">
+      <Input
+        placeholder="Add notes…"
+        aria-label="Note"
+        className="h-11 text-base md:text-sm"
+        {...register('note')}
+      />
+      <FieldError errors={[errors.note]} />
+    </div>
+  )
+
+  const saveLabel = (
+    <>
+      {mutation.isPending && <Loader2 className="animate-spin" />}
+      {mutation.isPending ? 'Saving…' : expense ? 'Save changes' : 'Add upcoming expense'}
+      {!mutation.isPending && amount && ` · ${formatMoney(amount)}`}
+    </>
+  )
+
   return (
     <Drawer open={open} onOpenChange={close} showSwipeHandle>
-      <DrawerContent>
+      <DrawerContent size="wide">
         <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
           <DrawerHeader>
             <DrawerTitle>{expense ? 'Edit upcoming expense' : 'New upcoming expense'}</DrawerTitle>
             <DrawerDescription>
-              {step === 0 ? 'What is it, and when is it due?' : 'How much is it, usually?'}
+              {oneStep
+                ? 'A bill you expect to pay. It moves no money until you pay it.'
+                : step === 0
+                  ? 'What is it, and when is it due?'
+                  : 'How much is it, usually?'}
             </DrawerDescription>
           </DrawerHeader>
 
-          <div className="px-4">
-            <Stepper steps={STEPS} current={step} />
-          </div>
+          {!oneStep && (
+            <div className="px-4">
+              <Stepper steps={STEPS} current={step} />
+            </div>
+          )}
 
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 lg:px-6">
             {mutation.isError && (
               <Alert variant="destructive">
                 <AlertDescription>{getApiErrorMessage(mutation.error)}</AlertDescription>
               </Alert>
             )}
 
-            {step === 0 ? (
+            {oneStep ? (
               <>
-                <div className="space-y-1.5">
-                  <label htmlFor="upcoming-name" className="text-sm font-medium">
-                    Name
-                  </label>
-                  <Input
-                    id="upcoming-name"
-                    placeholder="Rent, Internet, Insurance…"
-                    autoComplete="off"
-                    className="h-11 text-base md:text-sm"
-                    aria-invalid={Boolean(errors.name)}
-                    {...register('name')}
-                  />
-                  <FieldError errors={[errors.name]} />
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-3">
+                  {nameField}
                   <div className="space-y-1.5">
-                    <label htmlFor="upcoming-due" className="text-sm font-medium">
-                      {expense ? 'First due' : 'Due'}
+                    <label htmlFor="upcoming-amount" className="text-sm font-medium">
+                      Amount
                     </label>
                     <Controller
                       control={control}
-                      name="due_date"
+                      name="amount"
                       render={({ field }) => (
-                        <DatePicker
-                          id="upcoming-due"
+                        <MoneyField
+                          id="upcoming-amount"
                           value={field.value}
                           onChange={field.onChange}
-                          invalid={Boolean(errors.due_date)}
+                          onBlur={field.onBlur}
+                          // So a failed save focuses it.
+                          inputRef={field.ref}
+                          invalid={Boolean(errors.amount)}
                         />
                       )}
                     />
-                    <FieldError errors={[errors.due_date]} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-sm font-medium" aria-hidden="true">
-                      Repeats
-                    </p>
-                    <Controller
-                      control={control}
-                      name="recurrence"
-                      render={({ field }) => (
-                        <SegmentedControl
-                          label="Repeats"
-                          value={field.value}
-                          onChange={field.onChange}
-                          options={RECURRENCE_OPTIONS}
-                        />
-                      )}
-                    />
+                    <FieldError errors={[errors.amount]} />
                   </div>
                 </div>
-
-                <div className="space-y-1.5">
-                  <Input
-                    placeholder="Add notes…"
-                    aria-label="Note"
-                    className="h-11 text-base md:text-sm"
-                    {...register('note')}
-                  />
-                  <FieldError errors={[errors.note]} />
-                </div>
+                {whenFields}
+                {noteField}
+              </>
+            ) : step === 0 ? (
+              <>
+                {nameField}
+                {whenFields}
+                {noteField}
               </>
             ) : (
               <Controller
@@ -240,16 +363,29 @@ export function UpcomingDrawer({
 
           {/* Primary action first, nearest the thumb. */}
           <DrawerFooter className="pt-2">
-            {step === 0 ? (
+            {oneStep ? (
+              <>
+                <Button type="submit" size="lg" className="h-11" disabled={mutation.isPending}>
+                  {saveLabel}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="h-11"
+                  onClick={() => close(false)}
+                >
+                  Cancel
+                </Button>
+              </>
+            ) : step === 0 ? (
               <Button type="submit" size="lg" className="h-11">
                 Next
               </Button>
             ) : (
               <>
                 <Button type="submit" size="lg" className="h-11" disabled={mutation.isPending}>
-                  {mutation.isPending && <Loader2 className="animate-spin" />}
-                  {mutation.isPending ? 'Saving…' : expense ? 'Save changes' : 'Add upcoming expense'}
-                  {!mutation.isPending && amount && ` · ${formatMoney(amount)}`}
+                  {saveLabel}
                 </Button>
                 <Button
                   type="button"

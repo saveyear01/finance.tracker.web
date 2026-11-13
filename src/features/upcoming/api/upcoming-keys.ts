@@ -12,6 +12,8 @@ import { transactionKeys } from '@/features/transactions'
  */
 export const upcomingKeys = {
   all: ['upcoming-expenses'] as const,
+  // Under `all`, which every bill change already invalidates.
+  list: () => [...upcomingKeys.all, 'list'] as const,
   due: () => [...transactionKeys.all, 'upcoming-due'] as const,
   occurrence: (id: string, dueDate: string) =>
     [...upcomingKeys.due(), 'occurrence', id, dueDate] as const,

@@ -45,7 +45,7 @@ export function DeleteUpcomingDrawer({
             {expense?.recurrence === 'none'
               ? 'It stops showing up.'
               : 'Every future due date goes with it.'}{' '}
-            Payments you already made stay in your activity.
+            No money moves: payments you already made stay in your activity.
           </DrawerDescription>
         </DrawerHeader>
 

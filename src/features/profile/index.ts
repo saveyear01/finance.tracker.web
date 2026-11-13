@@ -6,4 +6,5 @@
 export { NameForm } from './components/name-form'
 export { PasswordForm } from './components/password-form'
 export { ProfileCard } from './components/profile-card'
+export { ProfileLayout } from './components/profile-layout'
 export { ProfileMenu } from './components/profile-menu'

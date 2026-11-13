@@ -5,6 +5,7 @@
  */
 export { AnalyticsOverview } from './components/analytics-overview'
 export { MonthSoFar } from './components/month-so-far'
+export { useEverRecorded } from './hooks/use-ever-recorded'
 export { NoteDays } from './components/note-days'
 export { analyticsKeys } from './api/analytics-keys'
 export { kindFromParams } from './lib/kinds'
