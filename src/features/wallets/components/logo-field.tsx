@@ -121,7 +121,7 @@ export function LogoField({
         <img
           src={preview}
           alt="Logo preview"
-          className="size-14 shrink-0 object-contain"
+          className="size-14 shrink-0 rounded-[22%] object-contain"
           draggable={false}
         />
       ) : (

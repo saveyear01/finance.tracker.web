@@ -50,7 +50,9 @@ export function WalletAvatar({
         alt=""
         aria-hidden="true"
         draggable={false}
-        className={cn('shrink-0 object-contain', box, className)}
+        // Corners rounded in proportion, so a square logo reads as a tile at
+        // every size (a transparent one is unaffected).
+        className={cn('shrink-0 rounded-[22%] object-contain', box, className)}
       />
     )
   }
