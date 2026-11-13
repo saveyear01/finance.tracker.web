@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { env } from '@/config/env'
-import { matchSubPage, NAV_ITEMS } from '@/config/navigation'
+import { ProfileLink } from '@/components/layouts/profile-link'
+import { inPill, inSection, matchSubPage, NAV_ITEMS } from '@/config/navigation'
 import { useCurrentUser } from '@/features/auth'
 
 /** Navigation state a link can pass so a sub-page's back button returns to it. */
@@ -39,13 +40,11 @@ function usePageHeading(): {
     }
   }
 
-  const match = NAV_ITEMS.find((item) =>
-    item.end ? pathname === item.to : pathname.startsWith(item.to),
-  )
-  // A page the mobile pill doesn't show needs a way back on a phone.
+  const match = NAV_ITEMS.find((item) => inSection(pathname, item.to, item.end))
+  // A page the mobile pill doesn't reach (Profile, opened from the avatar)
+  // needs a way back on a phone.
   const from = (state as BackState | null)?.from
-  const mobileBack =
-    match?.inPill === false ? (from?.startsWith('/') ? from : '/') : undefined
+  const mobileBack = !inPill(pathname) ? (from?.startsWith('/') ? from : '/') : undefined
   return { title: match?.label ?? env.APP_NAME, mobileBack }
 }
 
@@ -110,10 +109,12 @@ export function SiteHeader() {
         header sits on the page's own background.
       */}
       <header className="flex shrink-0 items-center gap-3 px-4 pt-4 pb-2 lg:hidden">
+        {/* The avatar leads every page the pill reaches — it is the way to
+            Profile on a phone, now that Profile isn't a tab (2026-11-13). */}
         {mobileBackTo ? (
           <BackButton to={mobileBackTo} className="size-10 shrink-0 rounded-full" />
         ) : (
-          <></>
+          <ProfileLink />
         )}
         {pathname === '/' && user ? (
           <div className="min-w-0">

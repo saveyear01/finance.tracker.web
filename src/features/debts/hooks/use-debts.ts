@@ -28,6 +28,14 @@ export function useDebts() {
   return { ...query, debts: query.data ?? [] }
 }
 
+/** Open debts behind their schedule — the nav's amber badge. Reads the list
+ * query, so it shares Debts' cache. */
+export function useDebtsBehind(): number {
+  const { debts } = useDebts()
+  return debts.filter((debt) => debt.status === 'open' && Number(debt.schedule?.behind ?? 0) > 0)
+    .length
+}
+
 /** One debt in full, for its own page. Fetched rather than picked out of the
  * list, so opening the page by link or reloading it works on its own. */
 export function useDebt(id: string | undefined) {

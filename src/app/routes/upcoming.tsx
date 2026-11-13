@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { PlanSwitch } from '@/components/layouts/plan-switch'
 import { UpcomingDrawer, UpcomingTabs } from '@/features/upcoming'
 
 /**
@@ -15,6 +16,7 @@ export function UpcomingRoute() {
 
   return (
     <div className="mx-auto w-full max-w-xl space-y-4 lg:max-w-310">
+      <PlanSwitch />
       <UpcomingTabs onAdd={() => setDrawerOpen(true)} />
 
       <UpcomingDrawer open={drawerOpen} expense={null} onOpenChange={setDrawerOpen} />

@@ -4,50 +4,105 @@ import {
   ChartColumn,
   House,
   Landmark,
+  TrendingUp,
   UserRound,
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
+
+/** The sidebar's headed groups (design/navigation-redesign.html, 2026-11-13).
+ * Profile sits apart, as the account card at the sidebar's foot. */
+export type NavGroup = 'overview' | 'money' | 'plan' | 'you'
+
+export const NAV_GROUPS: { id: Exclude<NavGroup, 'you'>; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'money', label: 'Money' },
+  { id: 'plan', label: 'Plan' },
+]
+
+/** A live count beside an item — what needs attention, not decoration. */
+export type NavBadge = 'overdue' | 'behind' | 'overdrawn'
 
 export type NavItem = {
   label: string
   /** Route path. Also the key React lists render by. */
   to: string
   icon: LucideIcon
+  group: NavGroup
   /**
    * `end` makes the active match exact. Only the index route needs it —
    * without it "/" would light up on every page.
    */
   end?: boolean
+  /** Shown while active, under the item: a section's own tabs. */
+  children?: { label: string; to: string; tab: string }[]
+  badge?: NavBadge
   /**
-   * Whether the mobile pill shows it (default yes). Anything left out is in
-   * the desktop sidebar only and reached from inside the app on a phone — its
-   * header then offers a back button, since nothing in the pill leads there.
+   * Not built yet: listed dimmed with a "Soon" tag, and NOT a link — the
+   * nav still never leads anywhere that doesn't exist.
    */
-  inPill?: boolean
+  soon?: boolean
 }
 
 /**
- * The one nav definition. The desktop sidebar and the mobile tab bar both
- * render this array, so an item can never exist in one and not the other.
- *
- * Only pages that exist are listed — never a dead link. The pill carries the
- * reference's five plus Analytics: home, funds, arrows, analytics, debts,
- * profile. Upcoming is the one sidebar-only page; on a phone it's reached from
- * Home.
+ * The one nav definition: the desktop sidebar renders it in its groups, and
+ * the phone's pill (`PILL_ITEMS`) is cut from the same sections, so a page
+ * can never exist in one and not the other.
  */
 export const NAV_ITEMS: NavItem[] = [
-  { label: 'Home', to: '/', icon: House, end: true },
-  // Wallets and allocations, as two tabs of one page.
-  { label: 'Funds', to: '/funds', icon: Wallet },
-  { label: 'Transactions', to: '/transactions', icon: ArrowUpDown },
-  // Expenses grouped by note, charted (2026-11-08). In the pill, by the
-  // user's call — the nav is the only way in.
-  { label: 'Analytics', to: '/analytics', icon: ChartColumn },
-  { label: 'Upcoming', to: '/upcoming', icon: CalendarClock, inPill: false },
-  { label: 'Debts', to: '/debts', icon: Landmark },
-  { label: 'Profile', to: '/profile', icon: UserRound },
+  { label: 'Home', to: '/', icon: House, group: 'overview', end: true },
+  { label: 'Analytics', to: '/analytics', icon: ChartColumn, group: 'overview' },
+  {
+    label: 'Funds',
+    to: '/funds',
+    icon: Wallet,
+    group: 'money',
+    badge: 'overdrawn',
+    children: [
+      { label: 'Wallets', to: '/funds?tab=wallets', tab: 'wallets' },
+      { label: 'Allocations', to: '/funds?tab=allocations', tab: 'allocations' },
+    ],
+  },
+  // "Activity" in the UI since 2026-11-13; the route stays /transactions.
+  { label: 'Activity', to: '/transactions', icon: ArrowUpDown, group: 'money' },
+  { label: 'Investments', to: '/investments', icon: TrendingUp, group: 'money', soon: true },
+  { label: 'Upcoming', to: '/upcoming', icon: CalendarClock, group: 'plan', badge: 'overdue' },
+  { label: 'Debts', to: '/debts', icon: Landmark, group: 'plan', badge: 'behind' },
+  { label: 'Profile', to: '/profile', icon: UserRound, group: 'you' },
 ]
+
+export type PillItem = {
+  label: string
+  to: string
+  icon: LucideIcon
+  end?: boolean
+  /** Every section the item stands for — Plan is Upcoming AND Debts. */
+  matches: string[]
+}
+
+/**
+ * The phone's pill: five destinations. Plan is Upcoming and Debts as two
+ * tabs of one page (the way Funds holds Wallets and Allocations); Profile is
+ * the header's avatar, never a tab; Investments joins once it exists.
+ */
+export const PILL_ITEMS: PillItem[] = [
+  { label: 'Home', to: '/', icon: House, end: true, matches: ['/'] },
+  { label: 'Funds', to: '/funds', icon: Wallet, matches: ['/funds'] },
+  { label: 'Activity', to: '/transactions', icon: ArrowUpDown, matches: ['/transactions'] },
+  { label: 'Analytics', to: '/analytics', icon: ChartColumn, matches: ['/analytics'] },
+  { label: 'Plan', to: '/upcoming', icon: CalendarClock, matches: ['/upcoming', '/debts'] },
+]
+
+/** Whether `pathname` is `section` or inside it. */
+export function inSection(pathname: string, section: string, end = false): boolean {
+  if (end || section === '/') return pathname === section
+  return pathname === section || pathname.startsWith(`${section}/`)
+}
+
+/** Whether a phone reaches `pathname` from the pill (else it needs Back). */
+export function inPill(pathname: string): boolean {
+  return PILL_ITEMS.some((item) => item.matches.some((m) => inSection(pathname, m, item.end)))
+}
 
 export type SubPage = {
   /** Exact path of the sub-page. */

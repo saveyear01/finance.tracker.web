@@ -3,6 +3,7 @@ import { Landmark, Plus } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
 
 import { EmptyState } from '@/components/layouts/empty-state'
+import { PlanSwitch } from '@/components/layouts/plan-switch'
 import { SplitView } from '@/components/layouts/split-view'
 import { Button } from '@/components/ui/button'
 import { DebtDrawer, DebtList, useDebts } from '@/features/debts'
@@ -29,6 +30,7 @@ export function DebtsRoute() {
   if (compact) {
     return (
       <div className="mx-auto w-full max-w-xl space-y-4">
+        <PlanSwitch />
         <DebtList onAdd={() => setDrawerOpen(true)} />
         {drawer}
       </div>
