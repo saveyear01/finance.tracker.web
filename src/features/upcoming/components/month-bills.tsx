@@ -1,5 +1,6 @@
 import { CalendarCheck } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 
 import { AddCard } from '@/components/add-card'
 import { EmptyState } from '@/components/layouts/empty-state'
@@ -87,6 +88,14 @@ export function MonthBills({
   const today = localToday()
   const spansMonths = through !== undefined
   const compact = useIsCompact()
+  // Opened at a section (/upcoming#overdue, from Home): scroll to it once
+  // the bills are drawn — the router doesn't, and the anchor isn't there
+  // until the data is.
+  const { hash } = useLocation()
+  useEffect(() => {
+    if (!hash || isLoading) return
+    document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' })
+  }, [hash, isLoading])
 
   if (isLoading) {
     return (
@@ -252,7 +261,9 @@ function Section({
   )
 
   return (
-    <section className="space-y-2">
+    // An anchor per section (2026-11-13): Home's "Overdue" and "Budgets"
+    // headings link to /upcoming#overdue and #budgets.
+    <section id={title.toLowerCase().replace(/\s+/g, '-')} className="scroll-mt-20 space-y-2">
       <h2 className="flex items-baseline justify-between gap-3 px-0.5">
         <span
           className={cn(

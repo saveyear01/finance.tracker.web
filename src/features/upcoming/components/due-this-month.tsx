@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { CalendarClock, ChevronRight } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import { EmptyState } from '@/components/layouts/empty-state'
 import { Button } from '@/components/ui/button'
@@ -11,13 +11,71 @@ import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
 import { useDue, useUpcomingList } from '../hooks/use-upcoming'
-import { currentAndNextMonth, statusOf, summarize } from '../lib/upcoming-meta'
+import { currentAndNextMonth, daysBetween, shortDate, statusOf, summarize } from '../lib/upcoming-meta'
 import type { Occurrence } from '../types'
-import { BillRow } from './bill-row'
 import { UpcomingDrawer } from './upcoming-drawer'
 
-const sumRemaining = (occurrences: Occurrence[]) =>
-  occurrences.reduce((sum, occurrence) => sum + Math.max(0, Math.round(Number(occurrence.remaining) * 100)), 0)
+const centsOf = (amount: string) => Math.round(Number(amount) * 100)
+
+/**
+ * One line of Home's card (option A of `design/due-card-minimal.html`, the
+ * user's pick, 2026-11-13) — lighter than Upcoming's `BillRow`: a small dot
+ * instead of a date tile, red said once, no chevron.
+ *
+ * - an overdue bill: red dot, the name over its due date, what's left over
+ *   "43 days late";
+ * - a budget: teal dot, the name over a thin bar of what's been spent, what's
+ *   left over "left" ("over budget" in red once it has gone past).
+ *
+ * The row opens that due date's own page, as Upcoming's rows do.
+ */
+function DueRow({ occurrence, today }: { occurrence: Occurrence; today: string }) {
+  const { pathname } = useLocation()
+  const { expense } = occurrence
+  const budget = expense.whole_month
+  const remaining = centsOf(occurrence.remaining)
+  const amount = centsOf(expense.amount)
+  const spent = amount > 0 ? Math.min(100, (centsOf(occurrence.paid) / amount) * 100) : 0
+  const late = -daysBetween(today, occurrence.due_date)
+
+  return (
+    <li className="border-border not-first:border-t">
+      <Link
+        to={`/upcoming/${expense.id}/${occurrence.due_date}`}
+        state={{ from: pathname }}
+        className="grid grid-cols-[0.5rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 transition-colors outline-none hover:bg-muted/60 focus-visible:bg-muted/60 active:bg-muted"
+      >
+        <span className={cn('size-2 rounded-full', budget ? 'bg-primary' : 'bg-destructive')} aria-hidden="true" />
+        <span className="min-w-0">
+          <span className="block truncate font-medium">{expense.name}</span>
+          {budget ? (
+            <span className="mt-1.5 block h-[3px] w-28 overflow-hidden rounded-full bg-muted">
+              <span className="block h-full rounded-full bg-primary" style={{ width: `${spent}%` }} />
+              <span className="sr-only">{Math.round(spent)}% spent</span>
+            </span>
+          ) : (
+            <span className="block text-xs text-muted-foreground">{shortDate(occurrence.due_date)}</span>
+          )}
+        </span>
+        <span className="text-right">
+          <span className="block font-semibold tabular-nums">{formatMoney(Math.abs(remaining) / 100)}</span>
+          <span
+            className={cn(
+              'block text-xs',
+              budget && remaining >= 0 ? 'text-muted-foreground' : 'text-destructive',
+            )}
+          >
+            {budget
+              ? remaining < 0
+                ? 'over budget'
+                : 'left'
+              : `${late} ${late === 1 ? 'day' : 'days'} late`}
+          </span>
+        </span>
+      </Link>
+    </li>
+  )
+}
 
 /**
  * Home's bills (minimal since 2026-11-13, mockup `design/home-minimal.html`):
@@ -26,8 +84,10 @@ const sumRemaining = (occurrences: Occurrence[]) =>
  * come), then two groups (the user's calls, 2026-11-13): **Overdue** —
  * every overdue bill, oldest first, what needs paying now — and **Budgets**
  * — every budget this month, spent or not, since a budget runs the whole
- * month. Bills still to come stay in the figure and on Upcoming, which the
- * header opens.
+ * month — in `DueRow`s (option A of `design/due-card-minimal.html`). Each
+ * group's heading opens that section of Upcoming (`/upcoming#overdue`,
+ * `#budgets`). Bills still to come stay in the figure and on Upcoming,
+ * which the header opens.
  *
  * No pinning any more (removed 2026-11-13, the user's call): Home lists what
  * is owed on its own. No legend and no "more than your balance" paragraph —
@@ -87,8 +147,8 @@ export function DueThisMonth() {
     (occurrence) => occurrence.expense.whole_month && statusOf(occurrence, today) !== 'ended',
   )
   const groups = [
-    { title: 'Overdue', items: overdueRows, figure: formatMoney(sumRemaining(overdueRows) / 100), urgent: true },
-    { title: 'Budgets', items: budgets, figure: `${formatMoney(sumRemaining(budgets) / 100)} left`, urgent: false },
+    { title: 'Overdue', anchor: 'overdue', items: overdueRows },
+    { title: 'Budgets', anchor: 'budgets', items: budgets },
   ].filter((group) => group.items.length > 0)
 
   return (
@@ -107,16 +167,18 @@ export function DueThisMonth() {
             <p className="text-sm text-destructive">{getApiErrorMessage(due.error, 'Could not load your bills.')}</p>
           ) : (
             <>
-              <div className="flex items-baseline justify-between gap-3">
+              <div>
                 <p className="text-2xl font-semibold tracking-tight tabular-nums">{formatMoney(toPayCents / 100)}</p>
-                <p className="text-right text-[13px] text-muted-foreground">
+                <p className="text-[13px] text-muted-foreground">
                   {due.occurrences.length === 0 ? (
                     'Nothing due'
                   ) : unpaid === 0 ? (
                     'All paid'
                   ) : (
                     <>
-                      {overdue > 0 && <b className="font-semibold text-destructive">{overdue} overdue · </b>}
+                      {overdue > 0 && (
+                        <b className="font-semibold text-destructive">{formatMoney(overdueCents / 100)} overdue · </b>
+                      )}
                       {unpaid} to pay
                     </>
                   )}
@@ -139,20 +201,17 @@ export function DueThisMonth() {
 
         {groups.map((group) => (
           <div key={group.title} className="border-t border-border">
-            <h3
-              className={cn(
-                'flex items-baseline justify-between gap-3 px-4 pt-3 pb-1 text-[11px] font-bold tracking-wider uppercase',
-                group.urgent ? 'text-destructive' : 'text-muted-foreground',
-              )}
-            >
-              <span>
+            <h3>
+              <Link
+                to={`/upcoming#${group.anchor}`}
+                className="block px-4 pt-3 pb-1 text-[11px] font-bold tracking-wider text-muted-foreground uppercase outline-none hover:text-foreground focus-visible:text-foreground"
+              >
                 {group.title} · {group.items.length}
-              </span>
-              <span className="font-medium tracking-normal normal-case tabular-nums">{group.figure}</span>
+              </Link>
             </h3>
             <ul>
               {group.items.map((occurrence) => (
-                <BillRow key={`${occurrence.expense.id}:${occurrence.due_date}`} occurrence={occurrence} today={today} />
+                <DueRow key={`${occurrence.expense.id}:${occurrence.due_date}`} occurrence={occurrence} today={today} />
               ))}
             </ul>
           </div>
