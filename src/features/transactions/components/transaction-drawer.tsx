@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Loader2, Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,6 +32,8 @@ import type { Transaction } from '../types'
 import { ActionDrawer } from './action-drawer'
 
 type Step = 'details' | 'confirm-delete' | 'edit'
+
+const GONE_FOR_EVERYONE = "It's removed for everyone in the household, and there's no undo."
 
 const centsOf = (amount: string) => Math.round(Number(amount) * 100)
 
@@ -107,6 +110,9 @@ export function TransactionDrawer({
   const deletable = !reversed
   const { cents, signed } = headline(legs)
 
+  // What the confirmation calls it: one leg of a split income is still an income.
+  const noun = first?.type === 'income_auto_split' ? 'income' : kind.toLowerCase()
+
   const close = () => dismiss(false)
   const confirmDelete = () =>
     first &&
@@ -125,24 +131,16 @@ export function TransactionDrawer({
           {first && (
             <>
               <DrawerHeader>
-                <DrawerTitle>
-                  {step === 'confirm-delete'
-                    ? `Delete this ${first.type === 'income_auto_split' ? 'income' : kind.toLowerCase()}?`
-                    : (first.note ?? kind)}
-                </DrawerTitle>
+                <DrawerTitle>{first.note ?? kind}</DrawerTitle>
                 <DrawerDescription>
-                  {step === 'confirm-delete'
-                    ? // What happens, in money, read off the legs: "₱2,140.00
-                      // goes back to BDO · Necessity."
-                      `${deleteEffect(legs)} It's removed for everyone in the household, and there's no undo.`
-                    : // The kind of entry, unless the title already says it.
-                      [
-                        first.note && kind,
-                        formatActivityDate(first.date),
-                        authorLabel(first, user?.id),
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
+                  {/* The kind of entry, unless the title already says it. */}
+                  {[
+                    first.note && kind,
+                    formatActivityDate(first.date),
+                    authorLabel(first, user?.id),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </DrawerDescription>
               </DrawerHeader>
 
@@ -207,37 +205,10 @@ export function TransactionDrawer({
                     </AlertDescription>
                   </Alert>
                 )}
-                {step === 'confirm-delete' && deleteError && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{getApiErrorMessage(deleteError)}</AlertDescription>
-                  </Alert>
-                )}
               </div>
 
               {(editable || deletable) && (
                 <DrawerFooter className="pt-2">
-                  {step === 'confirm-delete' ? (
-                    <>
-                      <Button
-                        variant="destructive"
-                        size="lg"
-                        className="h-11"
-                        disabled={remove.isPending}
-                        onClick={confirmDelete}
-                      >
-                        {remove.isPending && <Loader2 className="animate-spin" />}
-                        {remove.isPending ? 'Deleting…' : 'Delete'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        className="h-11"
-                        onClick={() => go('details')}
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
                     <>
                       {/* Both wait for the whole action: an edit must start
                           from every leg, not just the row that was tapped,
@@ -269,13 +240,30 @@ export function TransactionDrawer({
                         </Button>
                       )}
                     </>
-                  )}
                 </DrawerFooter>
               )}
             </>
           )}
         </DrawerContent>
       </Drawer>
+
+      {/* Over the drawer, which stays open behind it: Cancel goes back to the
+          details. A modal, not a drawer step (the user's call, 2026-11-13). */}
+      {first && (
+        <ConfirmDialog
+          open={entry !== null && step === 'confirm-delete'}
+          onOpenChange={(open) => {
+            if (!open) go('details')
+          }}
+          title={`Delete this ${noun}?`}
+          // What happens, in money, read off the legs: "₱2,140.00 goes back
+          // to BDO · Necessity."
+          description={`${deleteEffect(legs)} ${GONE_FOR_EVERYONE}`}
+          pending={remove.isPending}
+          error={deleteError ? getApiErrorMessage(deleteError) : null}
+          onConfirm={confirmDelete}
+        />
+      )}
 
       <ActionDrawer
         action={entry !== null && step === 'edit' ? action : null}

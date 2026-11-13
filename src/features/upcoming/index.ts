@@ -6,7 +6,7 @@
  * Dependencies run one way: upcoming uses wallets, funds and transactions;
  * none of them imports anything from here.
  */
-export { DeleteUpcomingDrawer } from './components/delete-upcoming-drawer'
+export { DeleteUpcomingDialog } from './components/delete-upcoming-dialog'
 export { DueThisMonth } from './components/due-this-month'
 export { PayDrawer } from './components/pay-drawer'
 export { UpcomingDetail } from './components/upcoming-detail'

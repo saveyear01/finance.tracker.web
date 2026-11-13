@@ -7,7 +7,7 @@ import {
   DebtDetail,
   DebtDrawer,
   DebtList,
-  DeleteDebtDrawer,
+  DeleteDebtDialog,
   PayDebtDrawer,
   RatesDrawer,
   type Debt,
@@ -83,7 +83,7 @@ export function DebtDetailRoute() {
           if (!open) setRating(null)
         }}
       />
-      <DeleteDebtDrawer
+      <DeleteDebtDialog
         debt={deleting}
         onOpenChange={(open) => {
           if (!open) setDeleting(null)

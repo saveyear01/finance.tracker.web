@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import {
-  DeleteUpcomingDrawer,
+  DeleteUpcomingDialog,
   PayDrawer,
   UpcomingDetail,
   UpcomingDrawer,
@@ -52,7 +52,7 @@ export function UpcomingDetailRoute() {
           if (!open) setPaying(null)
         }}
       />
-      <DeleteUpcomingDrawer
+      <DeleteUpcomingDialog
         expense={deleting}
         onOpenChange={(open) => {
           if (!open) setDeleting(null)
