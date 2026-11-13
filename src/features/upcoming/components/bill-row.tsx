@@ -1,4 +1,4 @@
-import { ChevronRight, Pin } from 'lucide-react'
+import { CalendarRange, ChevronRight, Pin } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 
 import { formatMoney } from '@/lib/money'
@@ -11,6 +11,7 @@ const TILE_TONE: Record<RowStatus, string> = {
   overdue: 'border-transparent bg-destructive/10 text-destructive',
   paid: 'border-transparent bg-accent text-accent-foreground',
   skipped: 'text-muted-foreground',
+  ended: 'text-muted-foreground',
   partial: '',
   due: '',
 }
@@ -24,6 +25,11 @@ const TILE_TONE: Record<RowStatus, string> = {
  *
  * The amount is what's LEFT while owed, what was paid once paid, and the
  * overrun — negative, red — once a paid bill went past its amount.
+ *
+ * A BUDGET (whole month) has no day: its tile shows the month over a
+ * calendar-range mark, it is badged "Budget", and its line counts the days
+ * its month has left. Once the month is over it reads "Ended" with what was
+ * spent.
  *
  * Rows sit inside a list card (`<ul>` with dividers) — the caller draws it.
  * The link carries where it was opened from, so the page's back button
@@ -46,7 +52,8 @@ export function BillRow({
   const [, month, day] = occurrence.due_date.split('-').map(Number)
   const monthLabel = new Date(2000, month - 1, 1).toLocaleDateString('en-US', { month: 'short' })
   const over = status === 'paid' && Number(occurrence.remaining) < 0
-  const badge = RECURRENCE_BADGES[expense.recurrence]
+  const budget = expense.whole_month
+  const badge = [budget && 'Budget', RECURRENCE_BADGES[expense.recurrence]].filter(Boolean).join(' · ')
 
   return (
     <li className="border-border not-first:border-t">
@@ -55,7 +62,7 @@ export function BillRow({
         state={{ from: `${pathname}${search}` }}
         className={cn(
           'flex items-center gap-3 px-4 py-2.5 transition-colors outline-none hover:bg-muted/60 focus-visible:bg-muted/60',
-          status === 'skipped' && 'opacity-70',
+          (status === 'skipped' || status === 'ended') && 'opacity-70',
         )}
       >
         <span
@@ -66,7 +73,11 @@ export function BillRow({
           aria-hidden="true"
         >
           <span className="text-[9.5px] font-bold tracking-wider uppercase opacity-80">{monthLabel}</span>
-          <span className="mt-0.5 text-base font-semibold tabular-nums">{day}</span>
+          {budget ? (
+            <CalendarRange className="mt-1 size-4" />
+          ) : (
+            <span className="mt-0.5 text-base font-semibold tabular-nums">{day}</span>
+          )}
         </span>
 
         <span className="min-w-0 flex-1">
@@ -84,7 +95,9 @@ export function BillRow({
             )}
           >
             {/* The tile is hidden from screen readers; the date is said here. */}
-            <span className="sr-only">{shortDate(occurrence.due_date)}: </span>
+            <span className="sr-only">
+              {budget ? `Budget for ${monthLabel}` : shortDate(occurrence.due_date)}:{' '}
+            </span>
             {whenText(occurrence, today)}
             {(status === 'due' || status === 'partial') && badge && (
               <span className="font-normal text-muted-foreground"> · {badge}</span>
@@ -95,7 +108,7 @@ export function BillRow({
         <span
           className={cn(
             'shrink-0 font-semibold tabular-nums',
-            (status === 'paid' || status === 'skipped') && 'font-medium text-muted-foreground',
+            (status === 'paid' || status === 'skipped' || status === 'ended') && 'font-medium text-muted-foreground',
             status === 'skipped' && 'line-through',
             over && 'font-semibold text-destructive',
           )}
@@ -103,7 +116,11 @@ export function BillRow({
           {over
             ? `−${formatMoney(-Number(occurrence.remaining))}`
             : formatMoney(
-                status === 'paid' ? occurrence.paid : status === 'skipped' ? expense.amount : occurrence.remaining,
+                status === 'paid' || status === 'ended'
+                  ? occurrence.paid
+                  : status === 'skipped'
+                    ? expense.amount
+                    : occurrence.remaining,
               )}
         </span>
         <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />

@@ -14,6 +14,7 @@ export const upcomingSchema = z
     amount: z.string(),
     due_date: z.string().min(1, 'Choose when it is due.'),
     recurrence: z.enum(['none', 'monthly', 'yearly']),
+    whole_month: z.boolean(),
     note: z.string().max(500, 'Keep the note under 500 characters.'),
   })
   .superRefine((values, ctx) => {

@@ -1,5 +1,6 @@
 import {
   CalendarCheck,
+  CalendarRange,
   CircleSlash,
   Pencil,
   Pin,
@@ -35,6 +36,7 @@ const WHEN_TONE: Record<RowStatus, string> = {
   overdue: 'font-semibold text-destructive',
   partial: 'text-muted-foreground',
   due: 'text-muted-foreground',
+  ended: 'text-muted-foreground',
 }
 
 /**
@@ -52,6 +54,7 @@ const TILE_TONE: Record<RowStatus, string> = {
   overdue: 'bg-destructive text-destructive-foreground',
   partial: 'bg-secondary text-secondary-foreground',
   due: 'bg-secondary text-secondary-foreground',
+  ended: 'bg-muted text-muted-foreground',
 }
 
 /** "2026-09-19" → { month: "SEP", day: "19" }, read as a local date. */
@@ -82,6 +85,10 @@ function tileParts(isoDate: string): { month: string; day: string } {
  * instalments — a partial payment leaves the rest due and the bill's own
  * amount never moves — so they are drawn as a timeline: what "staggered"
  * actually looks like, and nothing like the debts page's plain rows.
+ *
+ * A BUDGET (whole month) is the same page for a month instead of a day: the
+ * tile shows the month over a calendar-range mark, the figures say spent and
+ * left to spend, and there is no Skip — once its month is over it just ends.
  *
  * Skip is offered only on an overdue date (a bill still to come is paid or
  * left alone) and turns into Undo once skipped. The pin is a labelled switch
@@ -130,6 +137,7 @@ export function UpcomingDetail({
     }
 
     const { expense, payments } = occurrence
+    const budget = expense.whole_month
     const status = statusOf(occurrence, today)
     const owed = status === 'overdue' || status === 'partial' || status === 'due'
     const paidCents = Math.round(Number(occurrence.paid) * 100)
@@ -193,15 +201,20 @@ export function UpcomingDetail({
               <span className="text-[0.65rem] font-medium tracking-widest opacity-80">
                 {tile.month}
               </span>
-              <span className="-mt-1 text-2xl leading-none font-semibold tabular-nums">
-                {tile.day}
-              </span>
+              {budget ? (
+                <CalendarRange className="-mt-1 size-6" aria-label="Whole month" />
+              ) : (
+                <span className="-mt-1 text-2xl leading-none font-semibold tabular-nums">
+                  {tile.day}
+                </span>
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-lg font-medium">{expense.name}</p>
               {/* How late, or how soon — the tile beside it already says the day. */}
               <p className={cn('text-sm', WHEN_TONE[status])}>{whenText(occurrence, today)}</p>
               <p className="truncate text-xs text-muted-foreground">
+                {budget && 'Budget · '}
                 {RECURRENCE_LABELS[expense.recurrence]} · {formatMoney(expense.amount)}
               </p>
             </div>
@@ -213,12 +226,18 @@ export function UpcomingDetail({
           <div className="border-t border-border px-4 py-4">
             <p className="text-xs text-muted-foreground">
               {owed
-                ? 'Still to pay'
+                ? budget
+                  ? 'Left to spend'
+                  : 'Still to pay'
                 : overCents > 0
                   ? 'Over budget'
-                  : status === 'paid'
-                    ? 'Paid in full'
-                    : 'Paid before skipping'}
+                  : status === 'ended'
+                    ? 'Spent before it ended'
+                    : status === 'paid'
+                      ? budget
+                        ? 'All spent'
+                        : 'Paid in full'
+                      : 'Paid before skipping'}
             </p>
             <p
               className={cn(
@@ -239,7 +258,7 @@ export function UpcomingDetail({
                   aria-valuenow={progress}
                   aria-valuemin={0}
                   aria-valuemax={100}
-                  aria-label={`${expense.name} paid`}
+                  aria-label={`${expense.name} ${budget ? 'spent' : 'paid'}`}
                 >
                   <div
                     className={cn(
@@ -250,12 +269,15 @@ export function UpcomingDetail({
                   />
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  {formatMoney(occurrence.paid)} of {formatMoney(expense.amount)} paid · {progress}%
+                  {formatMoney(occurrence.paid)} of {formatMoney(expense.amount)} {budget ? 'spent' : 'paid'} ·{' '}
+                  {progress}%
                 </p>
               </>
             )}
             {paidCents === 0 && (
-              <p className="mt-1 text-xs text-muted-foreground">nothing paid yet</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {budget ? 'nothing spent yet' : 'nothing paid yet'}
+              </p>
             )}
           </div>
 
@@ -285,11 +307,12 @@ export function UpcomingDetail({
             onClick={() => onPay(occurrence)}
           >
             <Wallet />
-            {owed ? 'Pay this bill' : 'Pay more'}
+            {budget ? 'Record spending' : owed ? 'Pay this bill' : 'Pay more'}
           </Button>
         )}
         <div className="flex gap-2">
-          {owed && occurrence.due_date < today && (
+          {/* Never on a budget: it isn't late, it ends with its month. */}
+          {owed && !budget && occurrence.due_date < today && (
             <Button variant="outline" className="h-11 flex-1" onClick={skipOne}>
               <CircleSlash />
               Skip
@@ -316,12 +339,15 @@ export function UpcomingDetail({
 
       <section className="space-y-3 lg:row-span-2 lg:card-surface lg:p-4 lg:text-card-foreground">
         <h2 className="font-semibold">
-          Payments{payments.length > 1 && ` · ${payments.length}`}
+          {budget ? 'Spending' : 'Payments'}
+          {payments.length > 1 && ` · ${payments.length}`}
         </h2>
         {payments.length === 0 ? (
           <p className="flex items-center gap-2.5 rounded-xl border border-dashed border-border px-3.5 py-3 text-sm text-muted-foreground">
             <CalendarCheck className="size-4 shrink-0" aria-hidden="true" />
-            Nothing paid yet. Paying part of it leaves the rest due.
+            {budget
+              ? 'Nothing spent yet. Record each time you spend from it.'
+              : 'Nothing paid yet. Paying part of it leaves the rest due.'}
           </p>
         ) : (
           // A timeline, oldest at the top: instalments happen in order, and

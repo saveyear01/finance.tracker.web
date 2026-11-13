@@ -40,6 +40,9 @@ function spanLabel(from: string, through: string): string {
  *
  * - **Overdue**, red, first (the current month carries earlier unpaid ones in
  *   with `carryOverdue`);
+ * - **Budgets** (2026-11-13): the month's whole-month budgets, spent or not —
+ *   they have no day, so they neither fall due nor drop down to Paid; its
+ *   figure is what's left unspent. On the Later tab they sit under their month;
  * - **Coming up** — on the Later tab, under a heading per month instead;
  * - **Paid**, then **Skipped** (decided 2026-09-24): what's done, or waved
  *   off, doesn't pad out what's left. A skip made this month stays here with
@@ -162,9 +165,14 @@ export function MonthBills({
     )
   }
 
-  const by = (status: string) => occurrences.filter((occurrence) => statusOf(occurrence, today) === status)
+  // A month's budgets have no day, so on a month tab they are a section of
+  // their own at the top, spent or not. On the Later tab they fall under
+  // their month like any other entry.
+  const budgets = spansMonths ? [] : occurrences.filter((occurrence) => occurrence.expense.whole_month)
+  const dated = spansMonths ? occurrences : occurrences.filter((occurrence) => !occurrence.expense.whole_month)
+  const by = (status: string) => dated.filter((occurrence) => statusOf(occurrence, today) === status)
   const overdue = by('overdue')
-  const coming = occurrences.filter((occurrence) => ['due', 'partial'].includes(statusOf(occurrence, today)))
+  const coming = dated.filter((occurrence) => ['due', 'partial'].includes(statusOf(occurrence, today)))
   const paid = by('paid')
   const skipped = by('skipped')
 
@@ -191,12 +199,13 @@ export function MonthBills({
           )}
         >
           {overdue.length > 0 && <Section title="Overdue" items={overdue} today={today} urgent />}
+          {budgets.length > 0 && <Section title="Budgets" items={budgets} today={today} figure="left" />}
           {months
             ? months.map(({ key, items }) => (
                 <Section key={key} title={monthTitle(key)} items={items} today={today} quiet />
               ))
             : coming.length > 0 && <Section title="Coming up" items={coming} today={today} />}
-          {overdue.length + coming.length === 0 && (
+          {overdue.length + coming.length === 0 && dated.length > 0 && (
             <p className="py-2 text-center text-sm text-muted-foreground lg:col-span-2">
               {paid.length > 0 ? 'Everything here is paid.' : 'Nothing left to pay here.'}
             </p>
@@ -227,10 +236,18 @@ function Section({
   today: string
   urgent?: boolean
   quiet?: boolean
-  figure?: 'remaining' | 'paid' | 'none'
+  /** `left`: what's still unspent — an overspent budget adds nothing, rather
+   * than eating into the others'. */
+  figure?: 'remaining' | 'paid' | 'left' | 'none'
 }) {
   const cents = items.reduce(
-    (sum, occurrence) => sum + (figure === 'paid' ? centsOf(occurrence.paid) : centsOf(occurrence.remaining)),
+    (sum, occurrence) =>
+      sum +
+      (figure === 'paid'
+        ? centsOf(occurrence.paid)
+        : figure === 'left'
+          ? Math.max(0, centsOf(occurrence.remaining))
+          : centsOf(occurrence.remaining)),
     0,
   )
 

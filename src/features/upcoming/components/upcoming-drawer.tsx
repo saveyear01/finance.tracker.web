@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 
 import { AmountPad, sanitizeAmount } from '@/components/amount-pad'
 import { DatePicker } from '@/components/date-picker'
+import { Picker, type PickerOption } from '@/components/picker'
 import { SegmentedControl, type SegmentOption } from '@/components/segmented-control'
 import { Stepper } from '@/components/stepper'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -20,6 +21,7 @@ import {
 } from '@/components/ui/drawer'
 import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { env } from '@/config/env'
 import { localToday } from '@/features/transactions'
 import { useIsCompact } from '@/hooks/use-compact'
@@ -33,7 +35,7 @@ import type { Recurrence, UpcomingExpense } from '../types'
 
 const STEPS = ['Details', 'Amount']
 /** The fields the first step asks for — checked before moving on. */
-const DETAILS: (keyof UpcomingFormValues)[] = ['name', 'due_date', 'recurrence', 'note']
+const DETAILS: (keyof UpcomingFormValues)[] = ['name', 'due_date', 'recurrence', 'whole_month', 'note']
 
 // Short labels: the three share one segmented row, under "Repeats".
 const RECURRENCE_OPTIONS: SegmentOption<Recurrence>[] = [
@@ -88,6 +90,28 @@ function MoneyField({
   )
 }
 
+/**
+ * The months a budget can be for, as YYYY-MM-01: a year back (to fix one
+ * just past) through two years ahead — and the one it already has, if that
+ * lies outside.
+ */
+function monthOptions(current: string): PickerOption[] {
+  const now = new Date()
+  const keys = Array.from({ length: 37 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - 12 + index, 1)
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`
+  })
+  const selected = current ? `${current.slice(0, 7)}-01` : ''
+  if (selected && !keys.includes(selected)) keys.push(selected)
+  return keys.sort().map((key) => {
+    const [year, month] = key.split('-').map(Number)
+    return {
+      value: key,
+      label: new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    }
+  })
+}
+
 /** A stored amount as the keypad would have typed it: "1500", "1500.50". */
 function asTyped(amount: string): string {
   const cents = Math.round(Number(amount) * 100)
@@ -101,9 +125,10 @@ function valuesFor(expense: UpcomingExpense | null): UpcomingFormValues {
         amount: asTyped(expense.amount),
         due_date: expense.due_date,
         recurrence: expense.recurrence,
+        whole_month: expense.whole_month,
         note: expense.note ?? '',
       }
-    : { name: '', amount: '', due_date: localToday(), recurrence: 'monthly', note: '' }
+    : { name: '', amount: '', due_date: localToday(), recurrence: 'monthly', whole_month: false, note: '' }
 }
 
 /**
@@ -114,6 +139,9 @@ function valuesFor(expense: UpcomingExpense | null): UpcomingFormValues {
  * 2026-11-13) — name and amount paired, then the date and repeats, with the
  * plan read back in words under them. Repeating starts on "Every month"; most bills do. Editing the first
  * due date or the repeat reshapes every due date.
+ *
+ * "No fixed date" makes it a BUDGET for a whole month (2026-11-13): the date
+ * picker becomes a month picker, and it is spent any time in that month.
  */
 export function UpcomingDrawer({
   open,
@@ -138,17 +166,18 @@ export function UpcomingDrawer({
     control,
     handleSubmit,
     reset,
+    setValue,
     trigger,
     formState: { errors },
   } = useForm<UpcomingFormValues>({
     resolver: zodResolver(upcomingSchema),
     defaultValues: valuesFor(null),
   })
-  const [amount, dueDate, recurrence] = useWatch({
+  const [amount, dueDate, recurrence, wholeMonth] = useWatch({
     control,
-    name: ['amount', 'due_date', 'recurrence'],
+    name: ['amount', 'due_date', 'recurrence', 'whole_month'],
   })
-  const plan = readBack(dueDate, recurrence)
+  const plan = readBack(dueDate, recurrence, wholeMonth)
 
   // The drawer stays mounted between openings; start over each time.
   useEffect(() => {
@@ -171,6 +200,7 @@ export function UpcomingDrawer({
       amount: values.amount,
       due_date: values.due_date,
       recurrence: values.recurrence,
+      whole_month: values.whole_month,
       note: values.note.trim() || undefined,
     }
     const done = {
@@ -219,19 +249,37 @@ export function UpcomingDrawer({
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label htmlFor="upcoming-due" className="text-sm font-medium">
-            {expense || oneStep ? 'First due' : 'Due'}
+            {wholeMonth
+              ? recurrence === 'none'
+                ? 'Month'
+                : 'First month'
+              : expense || oneStep
+                ? 'First due'
+                : 'Due'}
           </label>
           <Controller
             control={control}
             name="due_date"
-            render={({ field }) => (
-              <DatePicker
-                id="upcoming-due"
-                value={field.value}
-                onChange={field.onChange}
-                invalid={Boolean(errors.due_date)}
-              />
-            )}
+            render={({ field }) =>
+              wholeMonth ? (
+                <Picker
+                  id="upcoming-due"
+                  label="Month"
+                  placeholder="Choose a month"
+                  value={field.value}
+                  onChange={field.onChange}
+                  options={monthOptions(field.value)}
+                  invalid={Boolean(errors.due_date)}
+                />
+              ) : (
+                <DatePicker
+                  id="upcoming-due"
+                  value={field.value}
+                  onChange={field.onChange}
+                  invalid={Boolean(errors.due_date)}
+                />
+              )
+            }
           />
           <FieldError errors={[errors.due_date]} />
         </div>
@@ -253,6 +301,26 @@ export function UpcomingDrawer({
           />
         </div>
       </div>
+      <Controller
+        control={control}
+        name="whole_month"
+        render={({ field }) => (
+          <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-border px-3.5 py-2.5">
+            <span className="min-w-0">
+              <span className="block text-sm font-medium">No fixed date</span>
+              <span className="block text-xs text-muted-foreground">A budget: spend it any time that month.</span>
+            </span>
+            <Switch
+              checked={field.value}
+              onCheckedChange={(on: boolean) => {
+                field.onChange(on)
+                // A budget is the month's: keep the month, drop the day.
+                if (on && dueDate) setValue('due_date', `${dueDate.slice(0, 7)}-01`)
+              }}
+            />
+          </label>
+        )}
+      />
       {/* The plan in words, so a wrong "Monthly" is caught before saving. */}
       {plan && (
         <p className="text-xs text-muted-foreground" aria-live="polite">

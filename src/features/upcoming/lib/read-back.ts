@@ -16,12 +16,24 @@ function ordinal(day: number): string {
  * first date's day (the 31st falls back to a shorter month's last day), and
  * yearly keeps the date (29 Feb → 28 Feb in a common year). Null with no date.
  */
-export function readBack(dueDate: string, recurrence: Recurrence): string | null {
+export function readBack(dueDate: string, recurrence: Recurrence, wholeMonth = false): string | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dueDate)
   if (!match) return null
   const month = MONTHS[Number(match[2]) - 1]
   const day = Number(match[3])
   if (!month) return null
+
+  // A budget: spent any time in its month, no day to anchor to.
+  if (wholeMonth) {
+    switch (recurrence) {
+      case 'none':
+        return `Spend it any time in ${month}. Once it's over, it ends.`
+      case 'monthly':
+        return 'A fresh budget every month, to spend any time in it.'
+      case 'yearly':
+        return `A budget for ${month} every year, to spend any time in it.`
+    }
+  }
 
   switch (recurrence) {
     case 'none':

@@ -10,6 +10,10 @@ export type UpcomingExpense = {
   /** YYYY-MM-DD — the FIRST due date; later ones follow from `recurrence`. */
   due_date: string
   recurrence: Recurrence
+  /** A BUDGET for the whole month rather than a bill due on a day:
+   * `due_date` is then the month's 1st. Never overdue — it just ends with
+   * its month. */
+  whole_month: boolean
   note: string | null
   /** When it was pinned to Home for quick access; null when it isn't. */
   pinned_at: string | null
@@ -53,6 +57,7 @@ export type UpcomingExpenseInput = {
   amount: string
   due_date: string
   recurrence: Recurrence
+  whole_month: boolean
   note?: string
 }
 

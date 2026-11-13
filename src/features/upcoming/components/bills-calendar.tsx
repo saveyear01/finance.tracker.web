@@ -20,6 +20,7 @@ const CHIP_TONE: Record<RowStatus, string> = {
   partial: 'bg-muted text-foreground',
   due: 'bg-muted text-foreground',
   skipped: 'bg-muted text-muted-foreground line-through',
+  ended: 'bg-muted text-muted-foreground',
 }
 
 /**
@@ -29,7 +30,7 @@ const CHIP_TONE: Record<RowStatus, string> = {
  * never the late ones.
  */
 const MAX_CHIPS = 2
-const URGENCY: Record<RowStatus, number> = { overdue: 0, partial: 1, due: 2, paid: 3, skipped: 4 }
+const URGENCY: Record<RowStatus, number> = { overdue: 0, partial: 1, due: 2, paid: 3, skipped: 4, ended: 5 }
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -46,6 +47,9 @@ const pad = (n: number) => String(n).padStart(2, '0')
  * Only the month's own days are drawn: overdue bills the current month
  * carries in from earlier months have no cell here, so the header counts
  * them — they are at the top of the list beside it.
+ *
+ * A budget has no day, so it isn't put on the 1st: it is a chip in an "All
+ * month" strip above the grid.
  */
 export function BillsCalendar({
   month,
@@ -63,10 +67,12 @@ export function BillsCalendar({
   const lead = new Date(year, monthIndex - 1, 1).getDay()
   const length = new Date(year, monthIndex, 0).getDate()
   const days = Array.from({ length }, (_, index) => `${month}-${pad(index + 1)}`)
-  const earlier = occurrences.filter((occurrence) => occurrence.due_date < `${month}-01`).length
+  const budgets = occurrences.filter((occurrence) => occurrence.expense.whole_month)
+  const dated = occurrences.filter((occurrence) => !occurrence.expense.whole_month)
+  const earlier = dated.filter((occurrence) => occurrence.due_date < `${month}-01`).length
 
   const byDay = new Map<string, Occurrence[]>()
-  for (const occurrence of occurrences) {
+  for (const occurrence of dated) {
     const list = byDay.get(occurrence.due_date)
     if (list) list.push(occurrence)
     else byDay.set(occurrence.due_date, [occurrence])
@@ -85,6 +91,21 @@ export function BillsCalendar({
             .join(' · ')}
         </span>
       </h2>
+
+      {budgets.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-background px-2 py-1.5">
+          <span className="text-[10.5px] font-bold tracking-wider text-muted-foreground uppercase">All month</span>
+          {budgets.map((occurrence) => (
+            <BillChip
+              key={occurrence.expense.id}
+              occurrence={occurrence}
+              today={today}
+              from={`${pathname}${search}`}
+              roomy
+            />
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-7 gap-1">
         {WEEKDAYS.map((day, index) => (
@@ -175,14 +196,15 @@ function BillChip({
   roomy = false,
 }: {
   occurrence: Occurrence
-  date: string
+  /** The day it's on; none for a budget, which is the whole month's. */
+  date?: string
   today: string
   from: string
   /** In the "+N more" list: a little more room to read and tap. */
   roomy?: boolean
 }) {
   const status = statusOf(occurrence, today)
-  const label = `${occurrence.expense.name}, ${shortDate(date)}: ${whenText(occurrence, today)}`
+  const label = `${occurrence.expense.name}, ${date ? shortDate(date) : 'all month'}: ${whenText(occurrence, today)}`
   return (
     <Link
       to={`/upcoming/${occurrence.expense.id}/${occurrence.due_date}`}

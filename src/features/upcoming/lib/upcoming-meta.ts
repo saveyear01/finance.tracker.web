@@ -68,16 +68,27 @@ export function shortDate(isoDate: string): string {
 }
 
 /** How a row reads: the API's status, with "overdue" split out of the owed
- * ones by the user's own today. */
-export type RowStatus = 'paid' | 'skipped' | 'overdue' | 'partial' | 'due'
+ * ones by the user's own today — and, for a budget, "ended" once its month
+ * is over (a budget is never overdue: it just ends, spent or not). */
+export type RowStatus = 'paid' | 'skipped' | 'overdue' | 'partial' | 'due' | 'ended'
 
 /** Owed: unpaid or partly paid — what Pay and (when overdue) Skip act on. */
 export function isOwed(occurrence: Occurrence): boolean {
   return occurrence.status === 'unpaid' || occurrence.status === 'partial'
 }
 
+/** The last day of a due date's month, YYYY-MM-DD — when a budget ends. */
+export function monthEndOf(isoDate: string): string {
+  const [year, month] = isoDate.split('-').map(Number)
+  return `${isoDate.slice(0, 7)}-${pad(new Date(year, month, 0).getDate())}`
+}
+
 export function statusOf(occurrence: Occurrence, today: string): RowStatus {
   if (occurrence.status === 'paid' || occurrence.status === 'skipped') return occurrence.status
+  if (occurrence.expense.whole_month) {
+    if (monthEndOf(occurrence.due_date) < today) return 'ended'
+    return occurrence.status === 'partial' ? 'partial' : 'due'
+  }
   if (occurrence.due_date < today) return 'overdue'
   return occurrence.status === 'partial' ? 'partial' : 'due'
 }
@@ -100,10 +111,13 @@ export function summarize(occurrences: Occurrence[], today: string) {
   for (const occurrence of occurrences) {
     paidCents += centsOf(occurrence.paid)
     if (occurrence.status === 'paid') paid += 1
-    if (isOwed(occurrence)) {
+    const status = statusOf(occurrence, today)
+    // What's left of a budget counts like an unpaid bill — never as late, and
+    // not at all once its month has ended.
+    if (isOwed(occurrence) && status !== 'ended') {
       toPayCents += centsOf(occurrence.remaining)
       unpaid += 1
-      if (occurrence.due_date < today) {
+      if (status === 'overdue') {
         overdue += 1
         overdueCents += centsOf(occurrence.remaining)
       }
@@ -130,6 +144,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
  * both say, so the two never disagree.
  */
 export function whenText(occurrence: Occurrence, today: string): string {
+  if (occurrence.expense.whole_month) return budgetText(occurrence, today)
   const status = statusOf(occurrence, today)
   const days = daysBetween(today, occurrence.due_date)
   const over = status === 'paid' && Number(occurrence.remaining) < 0
@@ -140,9 +155,38 @@ export function whenText(occurrence: Occurrence, today: string): string {
       return over ? 'Over budget' : `Paid ${shortDate(occurrence.payments.at(-1)?.paid_on ?? occurrence.due_date)}`
     case 'skipped':
       return 'Skipped'
+    case 'ended':
+      return 'Ended'
     case 'partial':
       return `Part paid · due ${days === 0 ? 'today' : `in ${plural(days, 'day')}`}`
     case 'due':
       return days === 0 ? 'Due today' : days === 1 ? 'Due tomorrow' : `Due in ${days} days`
+  }
+}
+
+/**
+ * A budget's line: how long its month has left, not a day it's due — "17
+ * days left", "Starts Dec 1", "Over budget", "Ended".
+ */
+function budgetText(occurrence: Occurrence, today: string): string {
+  const status = statusOf(occurrence, today)
+  const left = daysBetween(today, monthEndOf(occurrence.due_date))
+  const timeLeft =
+    occurrence.due_date > today
+      ? `Starts ${shortDate(occurrence.due_date)}`
+      : left === 0
+        ? 'Ends today'
+        : `${plural(left, 'day')} left`
+  switch (status) {
+    case 'paid':
+      return Number(occurrence.remaining) < 0 ? 'Over budget' : 'All spent'
+    case 'skipped':
+      return 'Skipped'
+    case 'ended':
+      return 'Ended'
+    case 'partial':
+      return `Part spent · ${timeLeft.charAt(0).toLowerCase()}${timeLeft.slice(1)}`
+    default:
+      return timeLeft
   }
 }
