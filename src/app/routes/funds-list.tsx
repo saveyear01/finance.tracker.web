@@ -10,20 +10,28 @@ import { AllocationsTab } from './funds-allocations-tab'
 import type { FundsTab } from './funds-first-row'
 import { WalletsTab } from './funds-wallets-tab'
 
-const plural = (count: number, one: string, many: string) =>
-  `${count} ${count === 1 ? one : many}`
-
-/** The Wallets | Allocations switch, on its own so an empty page can keep it. */
-export function FundsTabsList({ className }: { className?: string }) {
+/** The Wallets | Allocations switch, on its own so an empty page can keep it.
+ * With counts, each tab says how many it lists ("Wallets 6"). */
+export function FundsTabsList({
+  className,
+  walletCount,
+  allocationCount,
+}: {
+  className?: string
+  walletCount?: number
+  allocationCount?: number
+}) {
+  const count = (n?: number) =>
+    n === undefined ? null : <span className="font-medium text-muted-foreground tabular-nums">{n}</span>
   return (
     <TabsList className={cn('h-10! w-full', className)}>
       <TabsTrigger value="wallets">
         <Wallet />
-        Wallets
+        Wallets {count(walletCount)}
       </TabsTrigger>
       <TabsTrigger value="allocations">
         <ChartPie />
-        Allocations
+        Allocations {count(allocationCount)}
       </TabsTrigger>
     </TabsList>
   )
@@ -37,8 +45,12 @@ export function FundsTabsList({ className }: { className?: string }) {
  *
  * One total above both: the two views are the same money summed two ways,
  * so they always come to the same figure. It's summed from the wallets in
- * integer cents — with every allocation counted, the number Home shows; when
- * some are left out of Home's total, it says how much Home counts.
+ * integer cents.
+ *
+ * Minimal since 2026-11-13 (mockup `design/funds-wallets-minimal.html` — the
+ * user found it "redundant and overwhelming"): the label and the figure, no
+ * card. The counts are on the tabs; how much Home counts is the Allocations
+ * tab's "Counted on Home" section, so it isn't said here as well.
  *
  * The tab is the caller's: the /funds page keeps it in `?tab=`, a detail
  * page knows it from its own route, and switching from one opens the other
@@ -56,31 +68,34 @@ export function FundsList({
   // The active lists — the same queries the tabs make, so no extra fetch.
   const { wallets, isLoading } = useWallets()
   const { funds } = useFunds()
-  const centsOf = (amount: string) => Math.round(Number(amount) * 100)
-  const cents = wallets.reduce((sum, wallet) => sum + centsOf(wallet.balance), 0)
-  // What Home's balance card shows — said here so the two figures explain
-  // each other rather than just differing (2026-11-11).
-  const counted = funds.filter((fund) => fund.in_total)
-  const countedCents = counted.reduce((sum, fund) => sum + centsOf(fund.balance), 0)
+  const cents = wallets.reduce((sum, wallet) => sum + Math.round(Number(wallet.balance) * 100), 0)
+  const formatted = formatMoney(cents / 100)
+  // The centavos dimmed, as on Home's balance card.
+  const point = formatted.lastIndexOf('.')
+  const [whole, centavos] =
+    point === -1 ? [formatted, ''] : [formatted.slice(0, point), formatted.slice(point)]
 
   return (
     <div className="space-y-4">
-      <section className="card-surface p-4 text-card-foreground">
-        <p className="text-sm text-muted-foreground">
-          Total across {plural(wallets.length, 'wallet', 'wallets')} ·{' '}
-          {plural(funds.length, 'allocation', 'allocations')}
+      <section className="px-1">
+        <p className="text-sm text-muted-foreground">Total</p>
+        <p className="figure-lg">
+          {isLoading ? (
+            '…'
+          ) : (
+            <>
+              {whole}
+              <span className="font-medium text-muted-foreground">{centavos}</span>
+            </>
+          )}
         </p>
-        <p className="figure-lg">{isLoading ? '…' : formatMoney(cents / 100)}</p>
-        {!isLoading && counted.length < funds.length && (
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">{formatMoney(countedCents / 100)}</span> of it counted
-            on Home
-          </p>
-        )}
       </section>
 
       <Tabs value={tab} onValueChange={(value) => onTabChange(value as FundsTab)} className="gap-4">
-        <FundsTabsList />
+        <FundsTabsList
+          walletCount={isLoading ? undefined : wallets.length}
+          allocationCount={isLoading ? undefined : funds.length}
+        />
         <TabsContent value="wallets">
           <WalletsTab selectedId={tab === 'wallets' ? selectedId : undefined} />
         </TabsContent>

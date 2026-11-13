@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/badge'
@@ -16,11 +15,16 @@ import { WalletAvatar } from './wallet-avatar'
 const centsOf = (amount: string) => Math.round(Number(amount) * 100)
 
 /**
- * Wallets as rows in one card (2026-11-11, replacing the cards that opened on
- * an unmarked tap, and the table): the name, type and balance, and under
- * them what the wallet holds by allocation — always visible, as a thin
- * stacked bar in each allocation's own colour with the biggest two named.
- * That split is the app's whole idea; it shouldn't take a tap to find.
+ * Wallets as rows in one card: the logo (or the type's icon), the name and
+ * the balance, and under the name what the wallet holds by allocation as a
+ * thin stacked bar in each allocation's own colour. That split is the app's
+ * whole idea; it shouldn't take a tap to find.
+ *
+ * Minimal since 2026-11-13 (mockup `design/funds-wallets-minimal.html`): each
+ * fact said once. No type under the name (the icon says it), no "Wants 41% ·
+ * Savings 28%" line (the bar says it — the figures are on the wallet's page),
+ * no "Empty" (an empty wallet has no bar and a dimmed balance), no chevron
+ * (the whole row is the link; hover and press show it).
  *
  * Only what's actually held draws (a negative pair, borrowed against, has
  * no share of anything). A row opens the wallet's own page; no menu.
@@ -51,12 +55,13 @@ export function WalletRows({
         const parts = (breakdowns.get(wallet.id) ?? []).filter((item) => centsOf(item.amount) > 0)
         const held = parts.map((item) => centsOf(item.amount))
         const total = held.reduce((sum, cents) => sum + cents, 0)
+        const balance = centsOf(wallet.balance)
+        // What the bar shows, said for a screen reader (the bar is hidden from it).
         const percents = total > 0 ? wholePercents(held, total) : []
-        const named = parts
-          .slice(0, 2)
-          .map((item, index) => `${item.label} ${percents[index] === 0 ? '<1' : percents[index]}%`)
-          .join(' · ')
-        const summary = parts.length === 0 ? 'Empty' : parts.length > 2 ? `${named} · +${parts.length - 2}` : named
+        const split =
+          parts.length === 0
+            ? 'Empty'
+            : parts.map((item, index) => `${item.label} ${percents[index] === 0 ? 'under 1' : percents[index]}%`).join(', ')
 
         return (
           <li key={wallet.id} className="border-border not-first:border-t">
@@ -65,39 +70,41 @@ export function WalletRows({
               state={{ from }}
               aria-current={selected ? 'page' : undefined}
               className={cn(
-                'grid grid-cols-[2.25rem_minmax(0,1fr)_auto_1rem] items-center gap-x-3 gap-y-1.5 px-4 py-3 transition-colors outline-none hover:bg-muted/60 focus-visible:bg-muted/60',
+                'flex min-h-16 items-center gap-3 px-4 py-3 transition-colors outline-none hover:bg-muted/60 focus-visible:bg-muted/60 active:bg-muted',
                 archived && 'opacity-60',
                 selected &&
                   'relative bg-accent before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-primary hover:bg-accent focus-visible:bg-accent',
               )}
             >
               <WalletAvatar wallet={wallet} />
-              <span className="min-w-0">
+              <span className="grid min-w-0 flex-1 gap-1.5">
                 <span className="flex items-center gap-2">
                   <span className="truncate font-medium">{wallet.name}</span>
+                  {/* The type, for a screen reader: sighted users have the icon. */}
+                  <span className="sr-only">, {label}. {split}.</span>
                   {archived && <Badge variant="secondary">Archived</Badge>}
                 </span>
-                <span className="block text-xs text-muted-foreground">{label}</span>
+                {total > 0 && (
+                  <span className="flex h-1 max-w-52 gap-px overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                    {parts.map((item, index) => (
+                      <i
+                        key={item.id}
+                        className="block h-full"
+                        style={{ width: `${(held[index] / total) * 100}%`, backgroundColor: colors.get(item.id) }}
+                      />
+                    ))}
+                  </span>
+                )}
               </span>
               <span
-                className={cn('font-semibold tabular-nums', Number(wallet.balance) < 0 && 'text-destructive')}
+                className={cn(
+                  'shrink-0 font-semibold tabular-nums',
+                  balance < 0 && 'text-destructive',
+                  balance === 0 && 'font-medium text-muted-foreground',
+                )}
               >
                 {formatMoney(wallet.balance)}
               </span>
-              <ChevronRight className="size-4 text-muted-foreground" aria-hidden="true" />
-
-              {total > 0 && (
-                <span className="col-start-2 col-end-4 flex h-1.5 gap-px overflow-hidden rounded-full bg-muted" aria-hidden="true">
-                  {parts.map((item, index) => (
-                    <i
-                      key={item.id}
-                      className="block h-full"
-                      style={{ width: `${(held[index] / total) * 100}%`, backgroundColor: colors.get(item.id) }}
-                    />
-                  ))}
-                </span>
-              )}
-              <span className="col-start-2 col-end-4 -mt-0.5 truncate text-xs text-muted-foreground">{summary}</span>
             </Link>
           </li>
         )
