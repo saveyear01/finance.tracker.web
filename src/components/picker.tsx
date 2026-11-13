@@ -19,7 +19,13 @@ import {
 import { useIsCompact } from '@/hooks/use-compact'
 import { cn } from '@/lib/utils'
 
-export type PickerOption = { value: string; label: string; detail?: string }
+export type PickerOption = {
+  value: string
+  label: string
+  detail?: string
+  /** A mark before the label — a wallet's logo. Decorative; the label says it. */
+  icon?: ReactNode
+}
 
 /** Past this many options the sheet offers a search box. */
 const SEARCH_FROM = 8
@@ -81,7 +87,14 @@ export function Picker({
         >
           <SelectValue>
             {() =>
-              current ? current.label : <span className="text-muted-foreground">{placeholder}</span>
+              current ? (
+                <span className="flex min-w-0 items-center gap-2">
+                  {current.icon}
+                  <span className="truncate">{current.label}</span>
+                </span>
+              ) : (
+                <span className="text-muted-foreground">{placeholder}</span>
+              )
             }
           </SelectValue>
         </SelectTrigger>
@@ -97,7 +110,10 @@ export function Picker({
             options.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 <span className="flex w-full justify-between gap-3">
-                  <span>{option.label}</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    {option.icon}
+                    <span className="truncate">{option.label}</span>
+                  </span>
                   {option.detail && (
                     <span className="text-muted-foreground tabular-nums">{option.detail}</span>
                   )}
@@ -191,8 +207,14 @@ function PickerSheet({
           />
         }
       >
-        <span className={cn('min-w-0 flex-1 truncate', !current && 'text-muted-foreground')}>
-          {current ? current.label : placeholder}
+        <span
+          className={cn(
+            'flex min-w-0 flex-1 items-center gap-2',
+            !current && 'text-muted-foreground',
+          )}
+        >
+          {current?.icon}
+          <span className="truncate">{current ? current.label : placeholder}</span>
         </span>
         <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </DrawerTrigger>
@@ -233,6 +255,7 @@ function PickerSheet({
                 selected={option.value === value}
                 onPick={() => pick(option.value)}
               >
+                {option.icon}
                 <span className="min-w-0 flex-1 truncate">{option.label}</span>
                 {option.detail && (
                   <span className="shrink-0 text-sm text-muted-foreground tabular-nums">

@@ -17,6 +17,7 @@ import { useWalletBreakdowns } from '../hooks/use-wallet-breakdowns'
 import { useRestoreWallet } from '../hooks/use-mutate-wallet'
 import { useWallets } from '../hooks/use-wallets'
 import { canArchive, WALLET_TYPE_META } from '../lib/wallet-meta'
+import { WalletAvatar } from './wallet-avatar'
 import type { Wallet } from '../types'
 
 /**
@@ -74,7 +75,7 @@ export function WalletDetail({
     )
   }
 
-  const { label, icon: Icon } = WALLET_TYPE_META[wallet.type]
+  const { label } = WALLET_TYPE_META[wallet.type]
   const archived = wallet.archived_at !== null
   const items = (breakdowns.get(wallet.id) ?? []).map((item) => ({ ...item, color: colors.get(item.id) }))
   const holding = items.filter((item) => Number(item.amount) !== 0).length
@@ -122,9 +123,7 @@ export function WalletDetail({
   const hero = (
     <section className="rounded-xl bg-secondary px-5 pt-4 pb-5 text-secondary-foreground">
       <p className="flex items-center gap-2.5 text-sm text-secondary-foreground/90">
-        <span className="grid size-8 place-items-center rounded-full bg-secondary-foreground/15" aria-hidden="true">
-          <Icon className="size-4" />
-        </span>
+        <WalletAvatar wallet={wallet} size="sm" tone="hero" className="size-8" />
         {/* On a big screen the name heads the pane, so the card needn't repeat it. */}
         <span className="truncate font-medium">{compact ? `${wallet.name} · ${label}` : 'In this wallet'}</span>
         {compact && archived && (
@@ -167,6 +166,7 @@ export function WalletDetail({
       <div className="space-y-4">
         <header className="flex items-start justify-between gap-4">
           <h2 className="flex min-w-0 items-center gap-2 pt-1 text-lg font-semibold">
+            <WalletAvatar wallet={wallet} size="sm" />
             <span className="truncate">{wallet.name}</span>
             <Badge variant="secondary">{label}</Badge>
             {archived && <Badge variant="outline">Archived</Badge>}

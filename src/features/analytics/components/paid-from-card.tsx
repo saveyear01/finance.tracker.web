@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Info } from 'lucide-react'
 
 import { SegmentedControl } from '@/components/segmented-control'
+import { WalletAvatar } from '@/features/wallets'
 import { formatMoney } from '@/lib/money'
 
 import type { Kind, KindSummary } from '../types'
@@ -59,7 +60,10 @@ export function PaidFromCard({
           return (
             <li key={row.id} className="space-y-1.5 text-sm">
               <div className="flex items-baseline justify-between gap-3">
-                <span className="truncate font-medium">{row.name}</span>
+                <span className="flex min-w-0 items-center gap-2 self-center">
+                  {by === 'wallet' && <WalletAvatar walletId={row.id} size="xs" />}
+                  <span className="truncate font-medium">{row.name}</span>
+                </span>
                 <span className="shrink-0 text-muted-foreground tabular-nums">
                   <span className="font-semibold text-foreground">{formatMoney(row.total)}</span> ·{' '}
                   {share(row.total)}%

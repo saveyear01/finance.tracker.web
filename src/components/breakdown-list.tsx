@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 import { formatMoney } from '@/lib/money'
 import { wholePercents } from '@/lib/percents'
 import { cn } from '@/lib/utils'
@@ -9,6 +11,8 @@ export type BreakdownItem = {
   amount: string
   /** The bar's colour — an allocation's own; `primary` when left out. */
   color?: string
+  /** A mark before the label — a wallet's logo. Decorative. */
+  icon?: ReactNode
 }
 
 const centsOf = (amount: string) => Math.round(Number(amount) * 100)
@@ -54,7 +58,10 @@ export function BreakdownList({
         return (
           <li key={item.id} className="space-y-1.5">
             <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="truncate">{item.label}</span>
+              <span className="flex min-w-0 items-center gap-2 self-center">
+                {item.icon}
+                <span className="truncate">{item.label}</span>
+              </span>
               <span
                 className={cn(
                   'flex shrink-0 items-baseline gap-2 tabular-nums',

@@ -14,6 +14,7 @@ import { getApiErrorMessage } from '@/lib/api-client'
 
 import { useArchiveWallet } from '../hooks/use-mutate-wallet'
 import type { Wallet } from '../types'
+import { WalletAvatar } from './wallet-avatar'
 
 export function ArchiveWalletDrawer({
   wallet,
@@ -40,6 +41,11 @@ export function ArchiveWalletDrawer({
           <DrawerDescription>
             {wallet && (
               <>
+                <WalletAvatar
+                  wallet={wallet}
+                  size="xs"
+                  className="mr-1 inline-grid size-4 align-[-3px]"
+                />
                 <span className="font-medium text-foreground">{wallet.name}</span>{' '}
                 will be hidden from your wallets. No money moves: only an empty
                 wallet can be archived. Its history is kept, and you can restore it any time from

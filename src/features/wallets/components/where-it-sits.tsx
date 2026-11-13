@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { useWalletBreakdowns } from '../hooks/use-wallet-breakdowns'
 import { useWallets } from '../hooks/use-wallets'
 import { WALLET_TYPE_META } from '../lib/wallet-meta'
+import { WalletAvatar } from './wallet-avatar'
 
 const centsOf = (amount: string) => Math.round(Number(amount) * 100)
 
@@ -67,8 +68,11 @@ export function WhereItSits({ className }: { className?: string }) {
                 state={{ from: '/' }}
                 className="grid gap-1.5 rounded-lg px-2 py-2 transition-colors outline-none hover:bg-muted/60 focus-visible:bg-muted/60"
               >
-                <span className="truncate text-xs text-muted-foreground">
-                  {wallet.name} · {WALLET_TYPE_META[wallet.type].label}
+                <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                  <WalletAvatar wallet={wallet} size="xs" />
+                  <span className="truncate">
+                    {wallet.name} · {WALLET_TYPE_META[wallet.type].label}
+                  </span>
                 </span>
                 <span
                   className={cn(

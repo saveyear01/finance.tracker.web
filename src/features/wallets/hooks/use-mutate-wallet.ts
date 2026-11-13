@@ -5,8 +5,10 @@ import { fundKeys } from '@/features/funds'
 import {
   archiveWallet,
   createWallet,
+  removeWalletLogo,
   restoreWallet,
   updateWallet,
+  uploadWalletLogo,
 } from '../api/wallets-api'
 import { walletKeys } from '../api/wallets-keys'
 
@@ -52,4 +54,17 @@ export function useRestoreWallet() {
   const invalidate = useWalletInvalidation()
 
   return useMutation({ mutationFn: restoreWallet, onSuccess: invalidate })
+}
+
+/** Add or replace a wallet's logo. The wallets refetch to get its new URL. */
+export function useUploadWalletLogo() {
+  const invalidate = useWalletInvalidation()
+
+  return useMutation({ mutationFn: uploadWalletLogo, onSuccess: invalidate })
+}
+
+export function useRemoveWalletLogo() {
+  const invalidate = useWalletInvalidation()
+
+  return useMutation({ mutationFn: removeWalletLogo, onSuccess: invalidate })
 }

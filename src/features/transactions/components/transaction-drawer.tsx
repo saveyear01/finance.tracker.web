@@ -15,6 +15,7 @@ import {
 import { useCurrentUser } from '@/features/auth'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
+import { WalletAvatar } from '@/features/wallets'
 import { cn } from '@/lib/utils'
 
 import { useDeleteAction, useTransactionGroup } from '../hooks/use-transactions'
@@ -165,8 +166,10 @@ export function TransactionDrawer({
                         <p className="truncate text-sm font-medium">
                           {leg.fund_name ?? 'No allocation'}
                         </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {describe(leg).label} · {leg.wallet_name}
+                        <p className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                          <span className="shrink-0">{describe(leg).label} ·</span>
+                          <WalletAvatar walletId={leg.wallet_id} size="xs" className="size-4" />
+                          <span className="truncate">{leg.wallet_name}</span>
                         </p>
                       </div>
                       <span className="shrink-0 text-sm font-medium tabular-nums">

@@ -16,6 +16,11 @@ export type Wallet = {
   /** ISO-8601 when archived, null while active. */
   archived_at: string | null
   created_at: string
+  /**
+   * Where its uploaded logo is served, relative to the API root, versioned
+   * (`?v=`) so one URL can be cached for good; null when it has none.
+   */
+  logo_url: string | null
 }
 
 /** Input for `POST /api/wallets/`. */

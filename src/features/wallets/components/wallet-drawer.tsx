@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
@@ -24,8 +24,9 @@ import {
 import { Input } from '@/components/ui/input'
 import { getApiErrorMessage } from '@/lib/api-client'
 
-import { useCreateWallet, useUpdateWallet } from '../hooks/use-mutate-wallet'
+import { useCreateWallet, useUpdateWallet, useUploadWalletLogo } from '../hooks/use-mutate-wallet'
 import { WALLET_TYPE_META } from '../lib/wallet-meta'
+import { LogoField } from './logo-field'
 import { walletSchema, type WalletFormValues } from '../schemas/wallet-schema'
 import { WALLET_TYPES, type Wallet } from '../types'
 
@@ -44,6 +45,9 @@ export function WalletDrawer({ open, onOpenChange, wallet = null }: Props) {
   const createWallet = useCreateWallet()
   const updateWallet = useUpdateWallet()
   const mutation = isEditing ? updateWallet : createWallet
+  const uploadLogo = useUploadWalletLogo()
+  // A new wallet's logo, held until the wallet exists to upload it to.
+  const [pendingLogo, setPendingLogo] = useState<File | null>(null)
 
   const {
     register,
@@ -74,6 +78,7 @@ export function WalletDrawer({ open, onOpenChange, wallet = null }: Props) {
     if (!next) {
       createWallet.reset()
       updateWallet.reset()
+      setPendingLogo(null)
     }
     onOpenChange(next)
   }
@@ -90,7 +95,14 @@ export function WalletDrawer({ open, onOpenChange, wallet = null }: Props) {
           type: values.type,
           opening_balance: values.opening_balance || '0',
         },
-        done,
+        {
+          onSuccess: (created) => {
+            // The wallet is made either way; a logo that then fails to upload
+            // can be added again from Edit, so it never holds the wallet back.
+            if (pendingLogo) uploadLogo.mutate({ id: created.id, file: pendingLogo })
+            close(false)
+          },
+        },
       )
     }
   })
@@ -119,6 +131,19 @@ export function WalletDrawer({ open, onOpenChange, wallet = null }: Props) {
             )}
 
             <FieldGroup className="gap-4">
+              <Field>
+                <FieldLabel>
+                  Logo <span className="font-normal text-muted-foreground">optional</span>
+                </FieldLabel>
+                <LogoField
+                  // Keyed by the opening, so each one starts fresh.
+                  key={`${wallet?.id ?? 'new'}-${open}`}
+                  wallet={wallet}
+                  pending={pendingLogo}
+                  onPendingChange={setPendingLogo}
+                />
+              </Field>
+
               <Field>
                 <FieldLabel htmlFor="wallet-name">Name</FieldLabel>
                 <Input

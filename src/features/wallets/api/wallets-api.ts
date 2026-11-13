@@ -36,3 +36,39 @@ export async function archiveWallet(id: string): Promise<void> {
 export function restoreWallet(id: string): Promise<Wallet> {
   return unwrap(apiClient.post<Wallet>(`/wallets/${id}/restore/`))
 }
+
+/** PNG, JPG or SVG up to 256 KB — the API checks again, from the bytes. */
+export const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml']
+export const LOGO_MAX_BYTES = 256 * 1024
+
+/** `PUT /api/wallets/{id}/logo/` — add or replace the wallet's logo. */
+export function uploadWalletLogo({ id, file }: { id: string; file: File }): Promise<Wallet> {
+  const form = new FormData()
+  form.append('file', file)
+  // No Content-Type of our own: the browser sets multipart with its boundary.
+  return unwrap(
+    apiClient.put<Wallet>(`/wallets/${id}/logo/`, form, {
+      headers: { 'Content-Type': undefined },
+    }),
+  )
+}
+
+/** `DELETE /api/wallets/{id}/logo/` — back to the type's icon. */
+export function removeWalletLogo(id: string): Promise<Wallet> {
+  return unwrap(apiClient.delete<Wallet>(`/wallets/${id}/logo/`))
+}
+
+/**
+ * The logo as a data URL, fetched like every other API call (credentials
+ * included). Not a plain `<img src>` at the API: where the API is another
+ * site, a browser may withhold its cookies from an image request.
+ */
+export async function fetchWalletLogo(url: string): Promise<string> {
+  const response = await apiClient.get<Blob>(url, { responseType: 'blob' })
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(response.data)
+  })
+}

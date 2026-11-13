@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { useWalletBreakdowns } from '../hooks/use-wallet-breakdowns'
 import { WALLET_TYPE_META } from '../lib/wallet-meta'
 import type { Wallet } from '../types'
+import { WalletAvatar } from './wallet-avatar'
 
 const centsOf = (amount: string) => Math.round(Number(amount) * 100)
 
@@ -44,7 +45,7 @@ export function WalletRows({
   return (
     <ul className="overflow-hidden card-surface text-card-foreground">
       {wallets.map((wallet) => {
-        const { label, icon: Icon } = WALLET_TYPE_META[wallet.type]
+        const { label } = WALLET_TYPE_META[wallet.type]
         const archived = wallet.archived_at !== null
         const selected = wallet.id === selectedId
         const parts = (breakdowns.get(wallet.id) ?? []).filter((item) => centsOf(item.amount) > 0)
@@ -70,9 +71,7 @@ export function WalletRows({
                   'relative bg-accent before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-primary hover:bg-accent focus-visible:bg-accent',
               )}
             >
-              <span className="grid size-9 place-items-center rounded-full bg-muted" aria-hidden="true">
-                <Icon className="size-4 text-muted-foreground" />
-              </span>
+              <WalletAvatar wallet={wallet} />
               <span className="min-w-0">
                 <span className="flex items-center gap-2">
                   <span className="truncate font-medium">{wallet.name}</span>

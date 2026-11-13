@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { useCurrentUser } from '@/features/auth'
 import { OTHER_FUND_COLOR, fundColors, useFunds } from '@/features/funds'
-import { useWallets } from '@/features/wallets'
+import { useWallets, WalletAvatar } from '@/features/wallets'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
@@ -271,7 +271,12 @@ export function TransactionTable() {
                         <td className={cell}>
                           {reversed ? `${label} · Reversed` : label}
                         </td>
-                        <td className={cell}>{entry.wallet_name}</td>
+                        <td className={cell}>
+                          <span className="flex min-w-0 items-center gap-2">
+                            <WalletAvatar walletId={entry.wallet_id} size="xs" />
+                            <span className="truncate">{entry.wallet_name}</span>
+                          </span>
+                        </td>
                         <td className={cell}>
                           {entry.fund_name ? (
                             <span className="flex min-w-0 items-center gap-2">

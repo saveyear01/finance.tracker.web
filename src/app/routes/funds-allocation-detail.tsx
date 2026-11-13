@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 
 import { SplitView } from '@/components/layouts/split-view'
 import { ArchiveFundDrawer, FundDetail, FundDrawer, type Fund } from '@/features/funds'
+import { WalletAvatar } from '@/features/wallets'
 import { TransactionFeed } from '@/features/transactions'
 
 import { useSwitchTab } from './funds-first-row'
@@ -32,6 +33,7 @@ export function FundsAllocationDetailRoute() {
             id={fundId}
             onEdit={setEditing}
             onArchive={setArchiving}
+            walletIcon={(walletId) => <WalletAvatar walletId={walletId} size="xs" />}
             activity={
               <TransactionFeed
                 filter={{ fundId }}

@@ -43,11 +43,18 @@ export function FundDetail({
   onEdit,
   onArchive,
   activity,
+  walletIcon,
 }: {
   id: string | undefined
   onEdit: (fund: Fund) => void
   onArchive: (fund: Fund) => void
   activity: ReactNode
+  /**
+   * A wallet's logo for the "Where it sits" rows. Passed in by the route:
+   * funds never imports wallets (wallets depends on funds), or the two
+   * barrels would form a cycle.
+   */
+  walletIcon?: (walletId: string) => ReactNode
 }) {
   const { funds, isLoading, isError, error } = useFunds({ includeArchived: true })
   const setInTotal = useSetFundInTotal()
@@ -174,6 +181,7 @@ export function FundDetail({
           label: holding.wallet_name,
           amount: holding.balance,
           color,
+          icon: walletIcon?.(holding.wallet_id),
         }))}
         empty="No wallet holds any of it."
       />

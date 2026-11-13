@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 
 import { Picker, type PickerOption } from '@/components/picker'
 import { SegmentedControl, type SegmentOption } from '@/components/segmented-control'
 import type { Fund } from '@/features/funds'
-import type { Wallet } from '@/features/wallets'
+import { WalletAvatar, type Wallet } from '@/features/wallets'
 
 import { periodOptions, type ListFilters, type Period } from '../lib/list-filters'
 import type { ActionKind } from '../types'
@@ -27,17 +27,24 @@ const ADJUSTMENT_OPTION: SegmentOption<TypeChoice> = { value: 'adjustment', labe
 // wallets". This explicit first row is how to go back to it.
 const ALL = '__all__'
 
-function optionsOf(
-  items: Array<{ id: string; name: string; archived_at: string | null }>,
+function optionsOf<T extends { id: string; name: string; archived_at: string | null }>(
+  items: T[],
   allLabel: string,
+  /** A mark before each name — a wallet's logo. */
+  iconOf?: (item: T) => ReactNode,
 ): PickerOption[] {
   const active = items.filter((item) => item.archived_at === null)
   const archived = items.filter((item) => item.archived_at !== null)
   return [
     { value: ALL, label: allLabel },
-    ...active.map((item) => ({ value: item.id, label: item.name })),
+    ...active.map((item) => ({ value: item.id, label: item.name, icon: iconOf?.(item) })),
     // Archived ones still have history worth finding.
-    ...archived.map((item) => ({ value: item.id, label: item.name, detail: 'Archived' })),
+    ...archived.map((item) => ({
+      value: item.id,
+      label: item.name,
+      detail: 'Archived',
+      icon: iconOf?.(item),
+    })),
   ]
 }
 
@@ -58,7 +65,11 @@ export function TransactionFilterBar({
   wallets: Wallet[]
   funds: Fund[]
 }) {
-  const walletOptions = useMemo(() => optionsOf(wallets, 'All wallets'), [wallets])
+  const walletOptions = useMemo(
+    () =>
+      optionsOf(wallets, 'All wallets', (wallet) => <WalletAvatar wallet={wallet} size="xs" />),
+    [wallets],
+  )
   const fundOptions = useMemo(() => optionsOf(funds, 'All allocations'), [funds])
   const typeOptions =
     filters.type === 'adjustment' ? [...TYPE_OPTIONS, ADJUSTMENT_OPTION] : TYPE_OPTIONS

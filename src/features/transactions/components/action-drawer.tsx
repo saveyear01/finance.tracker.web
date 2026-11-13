@@ -22,7 +22,7 @@ import { FieldError } from '@/components/ui/field'
 import { Switch } from '@/components/ui/switch'
 import { useAllocation } from '@/features/allocations'
 import { fundColors, useFunds } from '@/features/funds'
-import { useWallets } from '@/features/wallets'
+import { useWallets, WalletAvatar } from '@/features/wallets'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
@@ -480,7 +480,11 @@ export function ActionDrawer({
     }))
   })()
 
-  const walletOptions: PickerOption[] = pickable.wallets.map((w) => ({ value: w.id, label: w.name }))
+  const walletOptions: PickerOption[] = pickable.wallets.map((w) => ({
+    value: w.id,
+    label: w.name,
+    icon: <WalletAvatar wallet={w} size="xs" />,
+  }))
   const allFundOptions: PickerOption[] = pickable.funds.map((f) => ({ value: f.id, label: f.name }))
 
   const onSubmit = handleSubmit((values) => {

@@ -1,3 +1,4 @@
+import { WalletAvatar } from '@/features/wallets'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
@@ -32,12 +33,8 @@ export function TransactionRow({
   const { label, icon: Icon } = describe(entry)
   const incoming = Number(entry.amount) > 0
   const reversed = entry.reversed_by_group_id !== null
-  const details = [
-    entry.note ? label : null,
-    entry.fund_name,
-    entry.wallet_name,
-    showDate ? formatActivityDate(entry.date) : null,
-  ].filter(Boolean)
+  const before = [entry.note ? label : null, entry.fund_name].filter(Boolean).join(' · ')
+  const date = showDate ? formatActivityDate(entry.date) : null
 
   const body = (
     <>
@@ -48,9 +45,16 @@ export function TransactionRow({
         <p className={cn('truncate font-medium', reversed && 'text-muted-foreground')}>
           {entry.note ?? label}
         </p>
-        <p className="truncate text-xs text-muted-foreground">
-          {reversed && <span className="font-medium text-foreground">Reversed · </span>}
-          {details.join(' · ')}
+        {/* The wallet carries its logo, small, so it can be spotted down
+            the list; the big circle keeps saying what kind of entry it is. */}
+        <p className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+          <span className="truncate">
+            {reversed && <span className="font-medium text-foreground">Reversed · </span>}
+            {before && `${before} · `}
+          </span>
+          <WalletAvatar walletId={entry.wallet_id} size="xs" className="size-4" />
+          <span className="shrink-0">{entry.wallet_name}</span>
+          {date && <span className="truncate">· {date}</span>}
         </p>
       </div>
       <span
