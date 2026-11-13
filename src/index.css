@@ -49,6 +49,12 @@
   /* An accent ON the dark card (a highlighted word, a figure): the logo's
      mint. Teal --primary drops to 2.6:1 there; this is 8.1:1. */
   --secondary-accent: #6ad6c9;
+  /* Money below zero ON the dark card (the balance card's allocations, the
+     wallet's sunk card): 5.1:1 on the card, 4.9:1 on dark mode's. --destructive
+     is built for white cards and is too dark here. */
+  --secondary-negative: #f2766c;
+  /* The coins the balance card's wallet drops for an income. */
+  --coin: #e8b84a;
   /* A real tinted grey — tracks, hovers, skeletons — a step off the card. */
   --muted: #ebebe6;
   --muted-foreground: #5c6966;
@@ -122,6 +128,8 @@
   --secondary: #17332f;
   --secondary-foreground: #f1f6f4;
   --secondary-accent: #6ad6c9;
+  --secondary-negative: #f2766c;
+  --coin: #e8b84a;
   --muted: #1c2624;
   --muted-foreground: #94a39f;
   --accent: #14322e;
@@ -170,6 +178,7 @@
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary-accent: var(--secondary-accent);
+  --color-secondary-negative: var(--secondary-negative);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);

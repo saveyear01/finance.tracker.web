@@ -4,7 +4,8 @@
  * from its subfolders directly.
  */
 export { ActionDrawer, type ExpenseVia } from './components/action-drawer'
-export { BalanceCard } from './components/balance-card'
+export { BalanceCard, type BalanceAllocation } from './components/balance-card'
+export type { PocketsBurst } from './components/pockets-canvas'
 export { QuickActions } from './components/quick-actions'
 export { TransactionDrawer } from './components/transaction-drawer'
 export { TransactionFeed } from './components/transaction-feed'

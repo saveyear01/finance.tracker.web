@@ -1,13 +1,19 @@
-import { useState } from 'react'
+import { useMemo, useState } from "react";
 
-import { PageIntro } from '@/components/layouts/page-intro'
-import { MonthSoFar } from '@/features/analytics'
-import { useCurrentUser } from '@/features/auth'
-import { OverdrawnNotice, useFunds } from '@/features/funds'
-import { SetupChecklist, useSetupProgress } from '@/features/onboarding'
-import { ActionDrawer, BalanceCard, type LedgerAction } from '@/features/transactions'
-import { DueThisMonth } from '@/features/upcoming'
-import { WhereItSits } from '@/features/wallets'
+import { PageIntro } from "@/components/layouts/page-intro";
+import { MonthSoFar } from "@/features/analytics";
+import { useCurrentUser } from "@/features/auth";
+import { fundColors, OverdrawnNotice, useFunds } from "@/features/funds";
+import { SetupChecklist, useSetupProgress } from "@/features/onboarding";
+import {
+  ActionDrawer,
+  BalanceCard,
+  type BalanceAllocation,
+  type LedgerAction,
+  type PocketsBurst,
+} from "@/features/transactions";
+import { DueThisMonth } from "@/features/upcoming";
+import { WhereItSits } from "@/features/wallets";
 
 /**
  * Home (redesigned 2026-11-11 from an audit, mockup in
@@ -45,46 +51,63 @@ import { WhereItSits } from '@/features/wallets'
  * the card must be dismissible rather than nag until all four steps are done.
  * Per device, not on the account: it's a convenience, not a preference.
  */
-const CHECKLIST_HIDDEN_KEY = 'setup-checklist-hidden'
+const CHECKLIST_HIDDEN_KEY = "setup-checklist-hidden";
 function readChecklistHidden(): boolean {
   try {
-    return localStorage.getItem(CHECKLIST_HIDDEN_KEY) === '1'
+    return localStorage.getItem(CHECKLIST_HIDDEN_KEY) === "1";
   } catch {
-    return false
+    return false;
   }
 }
 
 export function HomeRoute() {
-  const { user } = useCurrentUser()
-  const { funds } = useFunds()
-  const setup = useSetupProgress()
-  const [checklistHidden, setChecklistHidden] = useState(readChecklistHidden)
+  const { user } = useCurrentUser();
+  const { funds } = useFunds();
+  const setup = useSetupProgress();
+  const [checklistHidden, setChecklistHidden] = useState(readChecklistHidden);
   const hideChecklist = () => {
-    setChecklistHidden(true)
+    setChecklistHidden(true);
     try {
-      localStorage.setItem(CHECKLIST_HIDDEN_KEY, '1')
+      localStorage.setItem(CHECKLIST_HIDDEN_KEY, "1");
     } catch {
       // Private mode or blocked storage: hidden for this visit only.
     }
-  }
-  const showChecklist = setup.ready && !setup.complete && !checklistHidden
+  };
+  const showChecklist = setup.ready && !setup.complete && !checklistHidden;
   // "Welcome", not "welcome back", to a household that has only just started.
-  const greeting = showChecklist && setup.doneCount === 0 ? 'Welcome' : 'Welcome back'
+  const greeting =
+    showChecklist && setup.doneCount === 0 ? "Welcome" : "Welcome back";
   // The action being recorded doubles as the drawer's open state.
-  const [action, setAction] = useState<LedgerAction | null>(null)
+  const [action, setAction] = useState<LedgerAction | null>(null);
 
-  const centsOf = (amount: string) => Math.round(Number(amount) * 100)
-  const counted = funds.filter((fund) => fund.in_total)
-  const cents = counted.reduce((sum, fund) => sum + centsOf(fund.balance), 0)
+  const centsOf = (amount: string) => Math.round(Number(amount) * 100);
+  const counted = funds.filter((fund) => fund.in_total);
+  const cents = counted.reduce((sum, fund) => sum + centsOf(fund.balance), 0);
   const setAsideCents = funds
     .filter((fund) => !fund.in_total)
-    .reduce((sum, fund) => sum + centsOf(fund.balance), 0)
+    .reduce((sum, fund) => sum + centsOf(fund.balance), 0);
+  // What the card lists and its wallet shows: EVERY allocation, set-aside
+  // ones too (the user's call, 2026-11-13) — only the total leaves them out.
+  // Each in the colour it wears on Funds.
+  const allocations = useMemo<BalanceAllocation[]>(() => {
+    const colors = fundColors(funds);
+    return funds.map((fund) => ({
+      id: fund.id,
+      name: fund.name,
+      cents: Math.round(Number(fund.balance) * 100),
+      color: colors.get(fund.id) ?? "var(--series-other)",
+    }));
+  }, [funds]);
+  // An income just recorded, played on the card as coins split like its legs.
+  const [burst, setBurst] = useState<PocketsBurst | null>(null);
 
   return (
     <div className="mx-auto w-full max-w-xl space-y-4 lg:max-w-310">
       {/* Desktop only: the mobile header already greets by name. */}
       <div className="hidden lg:block">
-        <PageIntro>{user ? `${greeting}, ${user.first_name}.` : `${greeting}.`}</PageIntro>
+        <PageIntro>
+          {user ? `${greeting}, ${user.first_name}.` : `${greeting}.`}
+        </PageIntro>
       </div>
 
       {/* One column on a phone, in reading order. From `lg`, the bills take
@@ -100,6 +123,8 @@ export function HomeRoute() {
             counted={counted.length}
             allocationCount={funds.length}
             setAsideCents={setAsideCents}
+            allocations={allocations}
+            burst={burst}
             // Until the wallets have loaded, assume there is one: dimming a
             // set-up household's actions for a moment would read as broken.
             hasWallet={!setup.ready || setup.done.wallet}
@@ -115,7 +140,7 @@ export function HomeRoute() {
           <div className="min-w-0 lg:order-4 lg:col-start-1">
             <SetupChecklist
               progress={setup}
-              onRecordIncome={() => setAction('income')}
+              onRecordIncome={() => setAction("income")}
               onHide={hideChecklist}
             />
           </div>
@@ -136,10 +161,22 @@ export function HomeRoute() {
 
       <ActionDrawer
         action={action}
+        onRecorded={(recorded, entries) => {
+          if (recorded !== "income" || entries.length === 0) return;
+          setBurst({
+            key: entries[0].group_id,
+            legs: entries
+              .filter((entry) => entry.fund_id !== null)
+              .map((entry) => ({
+                id: entry.fund_id!,
+                cents: Math.round(Number(entry.amount) * 100),
+              })),
+          });
+        }}
         onOpenChange={(open) => {
-          if (!open) setAction(null)
+          if (!open) setAction(null);
         }}
       />
     </div>
-  )
+  );
 }

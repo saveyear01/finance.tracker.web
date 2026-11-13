@@ -255,6 +255,7 @@ export function ActionDrawer({
   editing = null,
   via = null,
   preset = null,
+  onRecorded,
   onOpenChange,
 }: {
   /** The action being recorded or edited, or null when the drawer is shut. */
@@ -266,6 +267,9 @@ export function ActionDrawer({
   /** Picked up front when recording — from a wallet's or an allocation's own
    * page, so "Expense" there starts from that wallet or allocation. */
   preset?: { walletId?: string; fundId?: string } | null
+  /** A NEW action was saved (not an edit), with every leg the API wrote —
+   * Home plays an income's split on the balance card from them. */
+  onRecorded?: (action: EditableAction, entries: Transaction[]) => void
   onOpenChange: (open: boolean) => void
 }) {
   const open = action !== null
@@ -499,6 +503,7 @@ export function ActionDrawer({
     const done = {
       onSuccess: (entries: Transaction[]) => {
         toast.success(action === 'adjustment' ? 'Saved.' : confirmation(action, entries))
+        onRecorded?.(action, entries)
         onOpenChange(false)
       },
     }
