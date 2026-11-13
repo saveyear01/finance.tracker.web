@@ -1,4 +1,4 @@
-import { CalendarRange, ChevronRight, Pin } from 'lucide-react'
+import { CalendarRange, ChevronRight } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 
 import { formatMoney } from '@/lib/money'
@@ -38,13 +38,10 @@ const TILE_TONE: Record<RowStatus, string> = {
 export function BillRow({
   occurrence,
   today,
-  showPin = false,
 }: {
   occurrence: Occurrence
   /** YYYY-MM-DD in the user's timezone. */
   today: string
-  /** Mark a pinned bill — on Upcoming; Home's list is all pinned. */
-  showPin?: boolean
 }) {
   const { pathname, search } = useLocation()
   const { expense } = occurrence
@@ -83,9 +80,6 @@ export function BillRow({
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5 font-medium">
             <span className="truncate">{expense.name}</span>
-            {showPin && expense.pinned_at !== null && (
-              <Pin className="size-3.5 shrink-0 text-muted-foreground" aria-label="Pinned to Home" />
-            )}
           </span>
           <span
             className={cn(

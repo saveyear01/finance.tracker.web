@@ -3,98 +3,80 @@ import { ChartColumn, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { Skeleton } from '@/components/ui/skeleton'
+import { localToday } from '@/features/transactions'
+import { useIsCompact } from '@/hooks/use-compact'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
-import { useNoteTotals, useSummary } from '../hooks/use-analytics'
-import { fromIso, monthOf, noteLabel } from '../lib/ranges'
+import { useSummary } from '../hooks/use-analytics'
+import { fromIso, monthOf } from '../lib/ranges'
 
 const cents = (amount: string | undefined) => Math.round(Number(amount ?? 0) * 100)
 
 /**
- * Home's pulse on the month (added 2026-11-11): money in against money out
- * so far, what was kept, and where most of it went — the three biggest
- * notes. The way in to Analytics, which opens on this same month. Reads the
- * same queries the Analytics page does, so opening it is instant.
+ * Home's pulse on the month (minimal since 2026-11-13, mockup
+ * `design/home-minimal.html`): a few figures, each said once — what was
+ * spent TODAY (the user asked for it on Home), money in and money out so
+ * far; from lg also what was kept. No chart (the user's call — Analytics
+ * has them). The header opens
+ * Analytics on this same month, where the notes and the rest live. Reads
+ * the same queries the Analytics page does, so opening it is instant.
  */
 export function MonthSoFar() {
+  const compact = useIsCompact()
   const month = monthOf(new Date()).window
   const income = useSummary('income', month)
   const expense = useSummary('expense', month)
-  const notes = useNoteTotals('expense', month)
 
   if (!income.data || !expense.data) {
     if (income.isError || expense.isError) return null
-    return <Skeleton className="h-40 w-full rounded-xl" />
+    return <Skeleton className="h-32 w-full rounded-xl" />
   }
 
+  const today = localToday()
   const received = cents(income.data.total)
   const spent = cents(expense.data.total)
+  const spentToday = cents(expense.data.days.find((day) => day.date === today)?.total)
   const kept = received - spent
-  const max = Math.max(received, spent, 1)
-  const top = (notes.data?.notes ?? []).filter((note) => note.note !== null).slice(0, 3)
   const title = `${format(fromIso(month.start), 'MMMM')} so far`
 
-  const rows = [
-    { label: 'Received', cents: received, className: 'bg-success' },
-    { label: 'Spent', cents: spent, className: 'bg-(--series-1)' },
+  const figures = [
+    { label: 'Spent today', cents: spentToday, sign: spentToday > 0 ? '−' : '', className: '' },
+    { label: 'In', cents: received, sign: received > 0 ? '+' : '', className: received > 0 ? 'text-success' : '' },
+    { label: 'Out', cents: spent, sign: spent > 0 ? '−' : '', className: spent > 0 ? 'text-destructive' : '' },
+    ...(compact
+      ? []
+      : [{ label: 'Kept', cents: Math.abs(kept), sign: kept < 0 ? '−' : '', className: kept < 0 ? 'text-destructive' : '' }]),
   ]
 
   return (
     <section className="space-y-3 card-surface p-4 text-card-foreground" aria-labelledby="month-heading">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 id="month-heading" className="text-sm font-semibold">
-          {title}
-        </h2>
-        <Link
-          to="/analytics"
-          className="inline-flex items-center gap-0.5 text-sm font-medium text-primary hover:underline"
-        >
-          Analytics
+      <Link
+        to="/analytics"
+        className="-m-1 flex items-center justify-between rounded-md p-1 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <h2 id="month-heading">{title}</h2>
+        <span className="inline-flex items-center gap-0.5">
+          {!compact && 'Analytics'}
           <ChevronRight className="size-4" aria-hidden="true" />
-        </Link>
-      </div>
+        </span>
+      </Link>
 
       {received === 0 && spent === 0 ? (
         <Quiet lastExpense={expense.data.last_before} lastIncome={income.data.last_before} />
       ) : (
         <>
-          <dl className="space-y-2">
-            {rows.map((row) => (
-              <div key={row.label} className="grid grid-cols-[4.5rem_1fr_auto] items-center gap-2.5 text-sm">
-                <dt className="text-muted-foreground">{row.label}</dt>
-                <span className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-                  {row.cents > 0 && (
-                    <i
-                      className={cn('block h-full rounded-full', row.className)}
-                      style={{ width: `${Math.max(2, (row.cents / max) * 100)}%` }}
-                    />
-                  )}
-                </span>
-                <dd className="font-semibold tabular-nums">{formatMoney(row.cents / 100)}</dd>
+          <dl className={cn('grid gap-3', compact ? 'grid-cols-3' : 'grid-cols-4')}>
+            {figures.map((figure) => (
+              <div key={figure.label} className="min-w-0">
+                <dt className="text-xs text-muted-foreground">{figure.label}</dt>
+                <dd className={cn('truncate font-semibold tabular-nums lg:text-lg', figure.className)}>
+                  {figure.sign}
+                  {formatMoney(figure.cents / 100)}
+                </dd>
               </div>
             ))}
           </dl>
-
-          {top.length > 0 && (
-            <ul className="flex flex-wrap gap-1.5" aria-label="Biggest expenses by note">
-              {top.map((note) => (
-                <li key={note.note} className="rounded-full bg-muted px-2.5 py-1 text-xs">
-                  {noteLabel(note.note)}{' '}
-                  <span className="font-semibold tabular-nums">{formatMoney(note.total)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <p className="flex items-baseline justify-between gap-3 border-t border-border pt-3 text-sm">
-            <span className="text-muted-foreground">{kept >= 0 ? 'You kept' : 'You spent more than came in'}</span>
-            <span className={cn('font-semibold tabular-nums', kept >= 0 ? 'text-success' : 'text-destructive')}>
-              {kept >= 0 ? '+' : '−'}
-              {formatMoney(Math.abs(kept) / 100)}
-              {kept >= 0 && received > 0 && ` · ${Math.round((kept / received) * 100)}%`}
-            </span>
-          </p>
         </>
       )}
     </section>

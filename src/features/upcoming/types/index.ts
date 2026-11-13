@@ -15,8 +15,6 @@ export type UpcomingExpense = {
    * its month. */
   whole_month: boolean
   note: string | null
-  /** When it was pinned to Home for quick access; null when it isn't. */
-  pinned_at: string | null
   created_at: string
 }
 

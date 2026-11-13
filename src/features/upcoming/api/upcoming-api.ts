@@ -65,26 +65,6 @@ export function getOccurrence({
   return unwrap(apiClient.get<Occurrence>(`/upcoming-expenses/${id}/occurrences/${dueDate}/`))
 }
 
-/**
- * `GET /upcoming-expenses/pinned/` — the pinned bills' due dates in `month`
- * (YYYY-MM, the user's current month), paid or not, plus earlier ones still
- * owed: the current month's tab cut down to pinned bills. Home's
- * quick-access list, soonest first.
- */
-export function listPinned({ month }: { month: string }): Promise<Occurrence[]> {
-  return unwrap(apiClient.get<Occurrence[]>('/upcoming-expenses/pinned/', { params: { month } }))
-}
-
-/** Pin a bill to Home. Already pinned: nothing changes. */
-export function pinUpcoming(id: string): Promise<UpcomingExpense> {
-  return unwrap(apiClient.put<UpcomingExpense>(`/upcoming-expenses/${id}/pin/`))
-}
-
-/** Take a bill off Home. Not pinned: nothing changes. */
-export function unpinUpcoming(id: string): Promise<UpcomingExpense> {
-  return unwrap(apiClient.delete<UpcomingExpense>(`/upcoming-expenses/${id}/pin/`))
-}
-
 export function createUpcoming(input: UpcomingExpenseInput): Promise<UpcomingExpense> {
   return unwrap(apiClient.post<UpcomingExpense>('/upcoming-expenses/', input))
 }

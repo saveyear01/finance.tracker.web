@@ -10,8 +10,10 @@ import {
   MeshStandardMaterial,
   PerspectiveCamera,
   PlaneGeometry,
+  Raycaster,
   Scene,
   Shape,
+  Vector2,
   Vector3,
   WebGLRenderer,
 } from 'three'
@@ -137,6 +139,13 @@ export class PocketsScene {
   private highlight: string | null = null
   private tilt = { rx: REST.x, ry: REST.y, vx: 0, vy: 0, tx: REST.x, ty: REST.y }
   private introPlayed = false
+  private wallet!: Mesh
+  private readonly raycaster = new Raycaster()
+  private readonly pointer = new Vector2()
+  /** The card under the pointer (desktop): lifted, and named by the caller. */
+  private hovered: string | null = null
+  /** Told which allocation's card the pointer is over, or null. */
+  onHover: ((id: string | null) => void) | null = null
 
   private running = false
   private frame = 0
@@ -172,7 +181,8 @@ export class PocketsScene {
     this.scene.add(key)
     this.scene.add(this.rig)
 
-    this.rig.add(new Mesh(rounded(WALLET_W, WALLET_H, 0.28, 0.22, 0.05), this.walletMat))
+    this.wallet = new Mesh(rounded(WALLET_W, WALLET_H, 0.28, 0.22, 0.05), this.walletMat)
+    this.rig.add(this.wallet)
     const clasp = new Mesh(new CylinderGeometry(0.13, 0.13, 0.06, 28), this.claspMat)
     clasp.rotation.x = Math.PI / 2
     clasp.position.set(WALLET_W / 2 - 0.5, -0.1, 0.19)
@@ -212,6 +222,22 @@ export class PocketsScene {
     pointerArea.addEventListener('pointermove', onMove)
     pointerArea.addEventListener('pointerleave', onLeave)
 
+    // Pointing at a card (a mouse or pen, not a finger) lifts it and tells
+    // the caller which one, so the card can be named beside it. The wallet's
+    // front is in the test too: a card hidden behind it isn't "under" the
+    // pointer.
+    const onCanvasMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') return
+      const r = canvas.getBoundingClientRect()
+      this.pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
+      this.raycaster.setFromCamera(this.pointer, this.camera)
+      const [hit] = this.raycaster.intersectObjects([this.wallet, ...this.cards.map((card) => card.mesh)], false)
+      this.hover(hit ? (this.cards.find((card) => card.mesh === hit.object)?.id ?? null) : null)
+    }
+    const onCanvasLeave = () => this.hover(null)
+    canvas.addEventListener('pointermove', onCanvasMove)
+    canvas.addEventListener('pointerleave', onCanvasLeave)
+
     this.cleanups.push(
       () => resize.disconnect(),
       () => visible.disconnect(),
@@ -219,6 +245,8 @@ export class PocketsScene {
       () => document.removeEventListener('visibilitychange', onVisibility),
       () => pointerArea.removeEventListener('pointermove', onMove),
       () => pointerArea.removeEventListener('pointerleave', onLeave),
+      () => canvas.removeEventListener('pointermove', onCanvasMove),
+      () => canvas.removeEventListener('pointerleave', onCanvasLeave),
     )
     this.resize()
   }
@@ -286,6 +314,13 @@ export class PocketsScene {
   }
 
   /** Lift one allocation's card out and dim the rest (hovering its row), or null. */
+  private hover(id: string | null) {
+    if (id === this.hovered) return
+    this.hovered = id
+    this.setHighlight(id)
+    this.onHover?.(id)
+  }
+
   setHighlight(id: string | null) {
     this.highlight = id
     if (this.reduced) this.snap()

@@ -9,13 +9,10 @@ import {
   deleteUpcoming,
   getOccurrence,
   listDue,
-  listPinned,
   listUpcoming,
   payUpcoming,
-  pinUpcoming,
   skipUpcoming,
   undoSkip,
-  unpinUpcoming,
   updateUpcoming,
 } from '../api/upcoming-api'
 import { upcomingKeys } from '../api/upcoming-keys'
@@ -67,16 +64,6 @@ export function useOccurrence(id: string | undefined, dueDate: string | undefine
   return { ...query, occurrence: query.data }
 }
 
-/** The pinned bills' due dates in `month` (plus earlier ones still owed) —
- * Home's list. */
-export function usePinned(month: string) {
-  const query = useQuery({
-    queryKey: upcomingKeys.pinned(month),
-    queryFn: () => listPinned({ month }),
-  })
-  return { ...query, occurrences: query.data ?? [] }
-}
-
 /** Changing a bill changes the due lists, nothing else. */
 function useInvalidateBills() {
   const queryClient = useQueryClient()
@@ -100,18 +87,6 @@ export function useUpdateUpcoming() {
 export function useDeleteUpcoming() {
   const invalidate = useInvalidateBills()
   return useMutation({ mutationFn: deleteUpcoming, onSuccess: invalidate })
-}
-
-/** Pinning changes the bill (its `pinned_at`) and Home's list — the due
- * lists carry the bill, so they refresh with it. */
-export function usePinUpcoming() {
-  const invalidate = useInvalidateBills()
-  return useMutation({ mutationFn: pinUpcoming, onSuccess: invalidate })
-}
-
-export function useUnpinUpcoming() {
-  const invalidate = useInvalidateBills()
-  return useMutation({ mutationFn: unpinUpcoming, onSuccess: invalidate })
 }
 
 /** Skipping moves no money: only the due lists change. */

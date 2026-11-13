@@ -24,13 +24,14 @@ const readReduced = () => window.matchMedia(REDUCED).matches
 export default function PocketsCanvas({
   items,
   burst,
-  highlightId,
+  onHover,
   pointerArea,
   className,
 }: {
   items: PocketItem[]
   burst: PocketsBurst | null
-  highlightId: string | null
+  /** Which allocation's card the pointer is over (desktop), or null. */
+  onHover?: (id: string | null) => void
   /** The card the pointer tilts the wallet over. */
   pointerArea: RefObject<HTMLElement | null>
   className?: string
@@ -40,7 +41,7 @@ export default function PocketsCanvas({
   const reduced = useSyncExternalStore(subscribeReduced, readReduced, () => false)
 
   // Effects run in the order written, so on mount the scene is created first
-  // and the ones after it hand it the motion setting, highlight and items.
+  // and the ones after it hand it the motion setting, hover listener and items.
   useEffect(() => {
     const host = hostRef.current
     if (!host) return
@@ -62,8 +63,13 @@ export default function PocketsCanvas({
   }, [reduced])
 
   useEffect(() => {
-    sceneRef.current?.setHighlight(highlightId)
-  }, [highlightId])
+    const scene = sceneRef.current
+    if (!scene) return
+    scene.onHover = onHover ?? null
+    return () => {
+      scene.onHover = null
+    }
+  }, [onHover])
 
   useEffect(() => {
     sceneRef.current?.setItems(items)

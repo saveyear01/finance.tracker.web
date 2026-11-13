@@ -3,7 +3,6 @@ import {
   CalendarRange,
   CircleSlash,
   Pencil,
-  Pin,
   Trash2,
   Undo2,
   Wallet,
@@ -13,19 +12,12 @@ import { toast } from 'sonner'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Switch } from '@/components/ui/switch'
 import { localToday } from '@/features/transactions'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 import { cn } from '@/lib/utils'
 
-import {
-  useOccurrence,
-  usePinUpcoming,
-  useSkipUpcoming,
-  useUndoSkip,
-  useUnpinUpcoming,
-} from '../hooks/use-upcoming'
+import { useOccurrence, useSkipUpcoming, useUndoSkip } from '../hooks/use-upcoming'
 import { RECURRENCE_LABELS, shortDate, statusOf, whenText, type RowStatus } from '../lib/upcoming-meta'
 import type { Occurrence, UpcomingExpense } from '../types'
 
@@ -91,9 +83,7 @@ function tileParts(isoDate: string): { month: string; day: string } {
  * left to spend, and there is no Skip — once its month is over it just ends.
  *
  * Skip is offered only on an overdue date (a bill still to come is paid or
- * left alone) and turns into Undo once skipped. The pin is a labelled switch
- * at the foot of the card (2026-11-11; it was an icon button read by its
- * fill): it pins the whole bill to Home, not this date. Delete sits apart at
+ * left alone) and turns into Undo once skipped. Delete sits apart at
  * the bottom: it removes the whole bill, not this one date.
  */
 export function UpcomingDetail({
@@ -112,8 +102,6 @@ export function UpcomingDetail({
   const { occurrence, isLoading, isError, error } = useOccurrence(id, dueDate)
   const skip = useSkipUpcoming()
   const undo = useUndoSkip()
-  const pin = usePinUpcoming()
-  const unpin = useUnpinUpcoming()
   const today = localToday()
 
   if (isLoading) {
@@ -167,18 +155,6 @@ export function UpcomingDetail({
           onError: (err) => toast.error(getApiErrorMessage(err)),
         },
       )
-
-    // The pin is the bill's, not this date's: the same either way, and the
-    // toast says where it went rather than leaving the tap silent.
-    const isPinned = expense.pinned_at !== null
-    const togglePin = () =>
-      (isPinned ? unpin : pin).mutate(expense.id, {
-        onSuccess: () =>
-          toast.success(
-            isPinned ? `${expense.name} unpinned from Home.` : `${expense.name} pinned to Home.`,
-          ),
-        onError: (err) => toast.error(getApiErrorMessage(err)),
-      })
 
     // From lg the payments sit beside the card rather than under it, so the
     // whole story of the date — where it stands and how it got there — is on
@@ -280,18 +256,6 @@ export function UpcomingDetail({
               </p>
             )}
           </div>
-
-          <label className="flex cursor-pointer items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm">
-            <span className="flex items-center gap-2">
-              <Pin className="size-4 text-muted-foreground" aria-hidden="true" />
-              Pin to Home
-            </span>
-            <Switch
-              checked={isPinned}
-              onCheckedChange={togglePin}
-              disabled={pin.isPending || unpin.isPending}
-            />
-          </label>
         </section>
 
         {/* Pay is the whole point of the page, so it gets the full width and

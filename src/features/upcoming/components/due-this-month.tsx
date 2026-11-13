@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CalendarClock, ChevronRight, CircleAlert } from 'lucide-react'
+import { CalendarClock, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { EmptyState } from '@/components/layouts/empty-state'
@@ -8,47 +8,46 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { localToday } from '@/features/transactions'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
+import { cn } from '@/lib/utils'
 
-import { useDue, usePinned, useUpcomingList } from '../hooks/use-upcoming'
-import { currentAndNextMonth, summarize } from '../lib/upcoming-meta'
+import { useDue, useUpcomingList } from '../hooks/use-upcoming'
+import { currentAndNextMonth, statusOf, summarize } from '../lib/upcoming-meta'
+import type { Occurrence } from '../types'
 import { BillRow } from './bill-row'
-import { DueSummary } from './due-summary'
 import { UpcomingDrawer } from './upcoming-drawer'
 
+const sumRemaining = (occurrences: Occurrence[]) =>
+  occurrences.reduce((sum, occurrence) => sum + Math.max(0, Math.round(Number(occurrence.remaining) * 100)), 0)
+
 /**
- * Home's bills (redesigned 2026-11-11, replacing the Upcoming row and the
- * separate Pinned list): this month's still to pay, overdue included, as the
- * same summary the Upcoming tab opens with — and, when the bills left outrun
- * the balance on the card above, by how much. The same query as that tab, so
- * opening it is instant.
+ * Home's bills (minimal since 2026-11-13, mockup `design/home-minimal.html`):
+ * what's left to pay this month — overdue included — as one figure, the
+ * overdue count beside it in red, one thin bar (paid / overdue / still to
+ * come), then two groups (the user's calls, 2026-11-13): **Overdue** —
+ * every overdue bill, oldest first, what needs paying now — and **Budgets**
+ * — every budget this month, spent or not, since a budget runs the whole
+ * month. Bills still to come stay in the figure and on Upcoming, which the
+ * header opens.
  *
- * Under them, the pinned bills (decided 2026-09-24: this month's, paid ones
- * included), in the same date-tile rows as Upcoming.
+ * No pinning any more (removed 2026-11-13, the user's call): Home lists what
+ * is owed on its own. No legend and no "more than your balance" paragraph —
+ * the red count says there's a problem, Upcoming has the detail. The same
+ * query as Upcoming's current tab, so opening it is instant.
  *
  * A household with no bills at all gets an empty state that adds the first
- * one instead (design/large-screen.html, rule A). The full list is asked for
- * only when this month is empty, to tell "nothing this month" from "nothing
- * at all".
+ * one instead. The full list is asked for only when this month is empty, to
+ * tell "nothing this month" from "nothing at all".
  */
-export function DueThisMonth({
-  balanceCents,
-  setAsideCents,
-}: {
-  /** What the balance card shows — the allocations that count. */
-  balanceCents: number
-  /** What the allocations left out of it hold. */
-  setAsideCents: number
-}) {
+export function DueThisMonth() {
   const { current } = currentAndNextMonth()
   const today = localToday()
   const due = useDue(current, { carryOverdue: true })
-  const pinned = usePinned(current)
   const nothingThisMonth = due.isSuccess && due.occurrences.length === 0
   const all = useUpcomingList({ enabled: nothingThisMonth })
   const [adding, setAdding] = useState(false)
 
   if (due.isLoading || (nothingThisMonth && all.isLoading)) {
-    return <Skeleton className="h-64 w-full rounded-xl" />
+    return <Skeleton className="h-48 w-full rounded-xl" />
   }
 
   // Mounted whichever branch draws, so adding the first bill — which swaps
@@ -73,67 +72,91 @@ export function DueThisMonth({
     )
   }
 
-  const shortBy = summarize(due.occurrences, today).toPayCents - balanceCents
+  const { toPayCents, overdueCents, paidCents, unpaid, overdue } = summarize(due.occurrences, today)
+  const barTotal = paidCents + toPayCents
+  const segments = [
+    { cents: paidCents, className: 'bg-success' },
+    { cents: overdueCents, className: 'bg-destructive' },
+    { cents: toPayCents - overdueCents, className: 'bg-(--series-1)' },
+  ].filter((segment) => segment.cents > 0)
+
+  // Oldest first — the API's order, soonest due date first.
+  const overdueRows = due.occurrences.filter((occurrence) => statusOf(occurrence, today) === 'overdue')
+  // This month's budgets, spent or not; an earlier month's has ended.
+  const budgets = due.occurrences.filter(
+    (occurrence) => occurrence.expense.whole_month && statusOf(occurrence, today) !== 'ended',
+  )
+  const groups = [
+    { title: 'Overdue', items: overdueRows, figure: formatMoney(sumRemaining(overdueRows) / 100), urgent: true },
+    { title: 'Budgets', items: budgets, figure: `${formatMoney(sumRemaining(budgets) / 100)} left`, urgent: false },
+  ].filter((group) => group.items.length > 0)
 
   return (
     <>
-      <section className="space-y-3 card-surface p-4 text-card-foreground" aria-labelledby="due-heading">
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 id="due-heading" className="text-sm font-semibold">
-            Due this month
-          </h2>
+      <section className="card-surface text-card-foreground" aria-labelledby="due-heading">
+        <div className="space-y-2.5 p-4">
           <Link
             to="/upcoming"
-            className="inline-flex items-center gap-0.5 text-sm font-medium text-primary hover:underline"
+            className="-m-1 flex items-center justify-between rounded-md p-1 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
           >
-            See all
+            <h2 id="due-heading">Due this month</h2>
             <ChevronRight className="size-4" aria-hidden="true" />
           </Link>
+
+          {due.isError ? (
+            <p className="text-sm text-destructive">{getApiErrorMessage(due.error, 'Could not load your bills.')}</p>
+          ) : (
+            <>
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-2xl font-semibold tracking-tight tabular-nums">{formatMoney(toPayCents / 100)}</p>
+                <p className="text-right text-[13px] text-muted-foreground">
+                  {due.occurrences.length === 0 ? (
+                    'Nothing due'
+                  ) : unpaid === 0 ? (
+                    'All paid'
+                  ) : (
+                    <>
+                      {overdue > 0 && <b className="font-semibold text-destructive">{overdue} overdue · </b>}
+                      {unpaid} to pay
+                    </>
+                  )}
+                </p>
+              </div>
+              {barTotal > 0 && (
+                <div className="flex h-1 gap-0.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                  {segments.map((segment) => (
+                    <i
+                      key={segment.className}
+                      className={cn('block h-full', segment.className)}
+                      style={{ width: `${(segment.cents / barTotal) * 100}%` }}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
-        {due.isError ? (
-          <p className="text-sm text-destructive">{getApiErrorMessage(due.error, 'Could not load your bills.')}</p>
-        ) : due.occurrences.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nothing due this month.</p>
-        ) : (
-          <>
-            <DueSummary occurrences={due.occurrences} today={today} />
-            {shortBy > 0 && (
-              <p className="flex gap-2.5 rounded-lg bg-muted px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-                <CircleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                <span>
-                  That's <b className="font-semibold text-foreground">{formatMoney(shortBy / 100)} more</b> than your
-                  total balance.
-                  {setAsideCents > 0 &&
-                    ` Another ${formatMoney(setAsideCents / 100)} is set aside in allocations left out of it.`}
-                </span>
-              </p>
-            )}
-          </>
-        )}
-
-        <div className="-mx-4 -mb-4">
-          <h3 className="px-4 pt-1 pb-2 text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
-            Pinned
-          </h3>
-          {pinned.isLoading ? (
-            <Skeleton className="mx-4 mb-4 h-16 rounded-lg" />
-          ) : pinned.isError ? (
-            <p className="border-t border-border px-4 py-3 text-sm text-destructive">
-              {getApiErrorMessage(pinned.error, 'Could not load your pinned expenses.')}
-            </p>
-          ) : pinned.occurrences.length === 0 ? (
-            <p className="border-t border-border px-4 py-3 text-sm text-muted-foreground">
-              Open an upcoming expense and pin it to keep it here in the months it's due.
-            </p>
-          ) : (
-            <ul className="border-t border-border">
-              {pinned.occurrences.map((occurrence) => (
+        {groups.map((group) => (
+          <div key={group.title} className="border-t border-border">
+            <h3
+              className={cn(
+                'flex items-baseline justify-between gap-3 px-4 pt-3 pb-1 text-[11px] font-bold tracking-wider uppercase',
+                group.urgent ? 'text-destructive' : 'text-muted-foreground',
+              )}
+            >
+              <span>
+                {group.title} · {group.items.length}
+              </span>
+              <span className="font-medium tracking-normal normal-case tabular-nums">{group.figure}</span>
+            </h3>
+            <ul>
+              {group.items.map((occurrence) => (
                 <BillRow key={`${occurrence.expense.id}:${occurrence.due_date}`} occurrence={occurrence} today={today} />
               ))}
             </ul>
-          )}
-        </div>
+          </div>
+        ))}
       </section>
       {drawer}
     </>

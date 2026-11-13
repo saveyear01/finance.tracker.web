@@ -271,7 +271,7 @@ function Section({
       </h2>
       <ul className="overflow-hidden card-surface text-card-foreground">
         {items.map((occurrence) => (
-          <BillRow key={keyOf(occurrence)} occurrence={occurrence} today={today} showPin />
+          <BillRow key={keyOf(occurrence)} occurrence={occurrence} today={today} />
         ))}
       </ul>
     </section>
