@@ -29,7 +29,11 @@ export function AllocationsTab() {
   const [showArchived, setShowArchived] = useState(false)
   const [adding, setAdding] = useState(false)
   const { funds, isLoading, isError, error } = useFunds({ includeArchived: true })
-  const active = funds.filter((fund) => fund.archived_at === null)
+  // Unallocated only once it holds something (or is borrowed against): an
+  // empty one is just noise above the allocations the user made.
+  const active = funds.filter(
+    (fund) => fund.archived_at === null && !(fund.is_unallocated && Number(fund.balance) === 0),
+  )
   const counted = active.filter((fund) => fund.in_total)
   const aside = active.filter((fund) => !fund.in_total)
   const archived = funds.filter((fund) => fund.archived_at !== null)

@@ -45,7 +45,7 @@ export function FundRows({ funds, from }: { funds: Fund[]; from: string }) {
                   <span className="truncate font-medium">{fund.name}</span>
                   {fund.allocation_percentage !== null && (
                     <Badge variant="secondary" className="bg-accent text-accent-foreground">
-                      {fund.allocation_percentage}% of income
+                      {fund.allocation_percentage}%<span className="sr-only"> of income</span>
                     </Badge>
                   )}
                   {archived && <Badge variant="secondary">Archived</Badge>}
