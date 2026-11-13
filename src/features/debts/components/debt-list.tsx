@@ -1,72 +1,29 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { Landmark } from 'lucide-react'
 
 import { AddCard } from '@/components/add-card'
 import { EmptyState } from '@/components/layouts/empty-state'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getApiErrorMessage } from '@/lib/api-client'
 import { formatMoney } from '@/lib/money'
 
 import { useDebts } from '../hooks/use-debts'
-import { centsOf, summarize } from '../lib/debt-meta'
-import type { Debt } from '../types'
+import { summarize } from '../lib/debt-meta'
 import { DebtOrderEditor } from './debt-order-editor'
 import { DebtRow } from './debt-row'
 
-/** A section of the list: its heading with a count and total, then its rows
- * in one card — the shape Upcoming's sections have. */
-function Section({
-  title,
-  debts,
-  figure,
-  action,
-  ranked = false,
-  selectedId,
-}: {
-  title: string
-  debts: Debt[]
-  figure: 'remaining' | 'paid'
-  action?: ReactNode
-  ranked?: boolean
-  selectedId?: string
-}) {
-  const cents = debts.reduce((sum, debt) => sum + centsOf(debt[figure]), 0)
-  return (
-    <section className="space-y-2">
-      <h2 className="flex items-baseline justify-between gap-3 px-0.5">
-        <span className="text-sm font-semibold">
-          {title} · {debts.length}
-        </span>
-        <span className="flex items-baseline gap-3 text-xs text-muted-foreground tabular-nums">
-          {formatMoney(cents / 100)}
-          {action}
-        </span>
-      </h2>
-      <ul className="overflow-hidden card-surface text-card-foreground">
-        {debts.map((debt, index) => (
-          <DebtRow
-            key={debt.id}
-            debt={debt}
-            rank={ranked ? index + 1 : null}
-            selected={debt.id === selectedId}
-          />
-        ))}
-      </ul>
-    </section>
-  )
-}
-
 /**
- * The Debts page: what you still owe across everything, then each debt.
+ * The Debts page, minimal since 2026-11-13 (mockup `design/debts-minimal.html`
+ * — the user found it overwhelming): no dark "Still to pay" card. Open debts
+ * come in the household's PRIORITY order — the one being paid down first at
+ * the top, each with its rank — and "Edit order" swaps the list for the
+ * order editor. The sum is the list's quiet last row, with what the open
+ * debts cost a month beside it (as Wallets closes its list), not a headline.
  *
- * Open debts come in the household's PRIORITY order — the one being paid
- * down first at the top, each with its rank — and "Edit order" swaps the
- * list for the order editor. Paid-off ones collect below in their own
- * section, as a record.
- *
- * The card at the top answers the three questions you open this page with:
- * what's left, what all of it costs a month, and how far through you are.
+ * Paid-off ones are a record, behind "Show N paid off" — shown when the one
+ * open beside the list is paid off, so the marked row is never hidden.
  * Totals are summed in integer cents, so they are exact.
  *
  * Unlike the other lists, "Add new debt" sits at the BOTTOM: debts are read
@@ -77,9 +34,11 @@ function Section({
 export function DebtList({ onAdd, selectedId }: { onAdd: () => void; selectedId?: string }) {
   const { debts, isLoading, isError, error } = useDebts()
   const [ordering, setOrdering] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const summary = summarize(debts)
   const openDebts = debts.filter((debt) => debt.status === 'open')
   const paidOff = debts.filter((debt) => debt.status !== 'open')
+  const showPaidOff = expanded || paidOff.some((debt) => debt.id === selectedId)
 
   if (isError) {
     return (
@@ -93,86 +52,71 @@ export function DebtList({ onAdd, selectedId }: { onAdd: () => void; selectedId?
 
   const add = <AddCard label="Add new debt" onClick={onAdd} />
 
-  return (
-    <div className="space-y-4">
-      <section className="rounded-xl bg-secondary p-5 text-secondary-foreground">
-        <p className="text-sm opacity-85">Still to pay</p>
-        <p className="mt-1 figure-xl">{formatMoney(summary.remainingCents / 100)}</p>
-        <p className="mt-1 text-sm opacity-85">
-          {isLoading
-            ? 'Loading…'
-            : summary.open === 0
-              ? debts.length > 0
-                ? 'Every debt paid off.'
-                : 'No debts tracked.'
-              : summary.monthlyCents > 0
-                ? `${formatMoney(summary.monthlyCents / 100)} a month across ${summary.open} ${summary.open === 1 ? 'debt' : 'debts'}`
-                : `Across ${summary.open} ${summary.open === 1 ? 'debt' : 'debts'}`}
-        </p>
-        {summary.owedCents > 0 && (
-          <>
-            <div
-              className="mt-4 h-1.5 overflow-hidden rounded-full bg-secondary-foreground/15"
-              role="progressbar"
-              aria-valuenow={summary.progress}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label="Paid off across every debt"
-            >
-              <div
-                className="h-full rounded-full bg-secondary-accent"
-                style={{ width: `${summary.progress}%` }}
-              />
-            </div>
-            <p className="mt-2 flex flex-wrap justify-between gap-x-3 text-sm opacity-85">
-              <span>
-                {formatMoney(summary.paidCents / 100)} paid off · {summary.progress}%
-              </span>
-              <span>of {formatMoney(summary.owedCents / 100)}</span>
-            </p>
-          </>
-        )}
-      </section>
+  if (isLoading) return <Skeleton className="h-56 w-full rounded-xl" />
 
-      {isLoading ? (
-        <Skeleton className="h-56 w-full rounded-xl" />
-      ) : debts.length === 0 ? (
-        <div className="space-y-3">
-          <EmptyState
-            icon={Landmark}
-            title="Nothing owed"
-            description="Track a loan or a card balance to watch it come down."
-          />
-          {add}
-        </div>
-      ) : (
-        <>
-          {openDebts.length > 0 && (
-            <Section
-              title="Priority"
-              debts={openDebts}
-              figure="remaining"
-              ranked
-              selectedId={selectedId}
-              action={
-                openDebts.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => setOrdering(true)}
-                    className="rounded-md text-sm font-semibold text-primary outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    Edit order
-                  </button>
-                )
-              }
-            />
-          )}
-          {paidOff.length > 0 && (
-            <Section title="Paid off" debts={paidOff} figure="paid" selectedId={selectedId} />
-          )}
-          {add}
-        </>
+  if (debts.length === 0) {
+    return (
+      <div className="space-y-3">
+        <EmptyState
+          icon={Landmark}
+          title="Nothing owed"
+          description="Track a loan or a card balance to watch it come down."
+        />
+        {add}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {openDebts.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="flex items-baseline justify-between gap-3 px-0.5">
+            <span className="text-sm font-semibold">Priority · {openDebts.length}</span>
+            {openDebts.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setOrdering(true)}
+                className="rounded-md text-sm font-semibold text-primary outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                Edit order
+              </button>
+            )}
+          </h2>
+          <ul className="overflow-hidden card-surface text-card-foreground">
+            {openDebts.map((debt, index) => (
+              <DebtRow key={debt.id} debt={debt} rank={index + 1} selected={debt.id === selectedId} />
+            ))}
+            <li className="flex items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
+              <span>
+                Total
+                {summary.monthlyCents > 0 && ` · ${formatMoney(summary.monthlyCents / 100)} a month`}
+              </span>
+              <span className="font-medium tabular-nums">{formatMoney(summary.remainingCents / 100)}</span>
+            </li>
+          </ul>
+        </section>
       )}
+
+      {openDebts.length === 0 && <p className="px-0.5 text-sm text-muted-foreground">Every debt paid off.</p>}
+
+      {add}
+
+      {paidOff.length > 0 &&
+        (showPaidOff ? (
+          <section className="space-y-2 pt-2">
+            <h2 className="px-0.5 text-sm font-semibold text-muted-foreground">Paid off · {paidOff.length}</h2>
+            <ul className="overflow-hidden card-surface text-card-foreground">
+              {paidOff.map((debt) => (
+                <DebtRow key={debt.id} debt={debt} rank={null} selected={debt.id === selectedId} />
+              ))}
+            </ul>
+          </section>
+        ) : (
+          <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setExpanded(true)}>
+            Show {paidOff.length} paid off
+          </Button>
+        ))}
     </div>
   )
 }

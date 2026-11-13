@@ -8,7 +8,6 @@ import {
   Percent,
   Plus,
   Sparkle,
-  Trash2,
   Wallet,
 } from 'lucide-react'
 
@@ -38,19 +37,6 @@ import type { Debt, DebtCharge, DebtRate } from '../types'
 type Action = { key: string; label: string; icon: typeof Wallet; onClick: () => void }
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
-
-/** A card of the page: a heading, an optional figure or link beside it. */
-function Card({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
-  return (
-    <section className="space-y-3 card-surface p-4 text-card-foreground">
-      <h2 className="flex items-baseline justify-between gap-3">
-        <span className="font-semibold">{title}</span>
-        {aside && <span className="text-xs text-muted-foreground">{aside}</span>}
-      </h2>
-      {children}
-    </section>
-  )
-}
 
 /** A label and its value, as rows of a card. */
 function Rows({ rows }: { rows: [string, ReactNode][] }) {
@@ -134,83 +120,62 @@ function Breakdown({ debt }: { debt: Debt }) {
 }
 
 /**
- * A debt with a term, against it: a bar of what's paid with a marker at
- * what should be by now, then the next due date, how many have fallen due
- * and when it ends. Measured against the loan (principal + interest) —
- * charges sit on top of the schedule.
+ * Everything about where the debt is going, in ONE card (2026-11-13, mockup
+ * `design/debts-minimal.html` — it replaced Schedule, Pace and Terms, which
+ * said the monthly payment three times): each number once.
+ *
+ * - a debt with a term: next due (date and amount), how far behind, the
+ *   rate, and when it ends;
+ * - an open-ended one (a card): the minimum asked, how long that takes at
+ *   this pace, the rate, "No end date";
+ * - the agreed note, if any.
+ *
+ * Under them, "How it adds up" folds the arithmetic away — borrowed +
+ * interest + added − paid = left — for when you want it.
  */
-function ScheduleCard({ debt }: { debt: Debt }) {
-  const schedule = debt.schedule
-  if (!schedule || !debt.monthly_payment || !debt.tenure_months) return null
-  const loan = centsOf(debt.principal) + centsOf(debt.interest)
-  const pct = (cents: number) => (loan > 0 ? Math.min(100, (cents / loan) * 100) : 0)
-  const paidPct = pct(centsOf(debt.paid))
-  const duePct = pct(centsOf(schedule.due_so_far))
-
-  return (
-    <Card title="Schedule" aside={`${formatMoney(debt.monthly_payment)} a month`}>
-      <div
-        className="relative h-2.5 rounded-full bg-muted"
-        role="img"
-        aria-label={`${formatMoney(debt.paid)} paid; ${formatMoney(schedule.due_so_far)} due by now`}
-      >
-        <div className="h-full rounded-full bg-primary" style={{ width: `${paidPct}%` }} />
-        {schedule.due_count > 0 && (
-          <span
-            className="absolute -top-1 -bottom-1 w-0.5 -translate-x-1/2 rounded-full bg-foreground"
-            style={{ left: `${duePct}%` }}
-            aria-hidden="true"
-          />
-        )}
-      </div>
-      <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <i className="size-2.5 rounded-sm bg-primary" aria-hidden="true" />
-          Paid <b className="font-semibold text-foreground tabular-nums">{formatMoney(debt.paid)}</b>
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <i className="h-2.5 w-0.5 rounded-sm bg-foreground" aria-hidden="true" />
-          Due by now{' '}
-          <b className="font-semibold text-foreground tabular-nums">
-            {formatMoney(schedule.due_so_far)}
-          </b>
-        </span>
-      </p>
-      <Rows
-        rows={[
-          ...(schedule.next_due
-            ? ([['Next due', `${shortDate(schedule.next_due)} · ${formatMoney(debt.monthly_payment)}`]] as [
-                string,
-                ReactNode,
-              ][])
-            : []),
-          ['Due so far', `${schedule.due_count} of ${plural(debt.tenure_months, 'payment')}`],
-          ['Ends', longDate(schedule.ends_on)],
-        ]}
-      />
-    </Card>
-  )
-}
-
-/** An open-ended debt has nothing to keep up with, so: how fast it's going. */
-function PaceCard({ debt }: { debt: Debt }) {
+function PlanCard({ debt }: { debt: Debt }) {
   const today = localToday()
-  const { monthsAtMinimum, recentCents } = paceOf(debt, today)
+  const rate = formatRate(debt.current_rate)
   const rows: [string, ReactNode][] = []
-  if (monthsAtMinimum !== null && debt.minimum_payment) {
-    rows.push([
-      `At the ${formatMoney(debt.minimum_payment)} minimum`,
-      `~${plural(monthsAtMinimum, 'month')} · ${monthYearAfter(today, monthsAtMinimum)}`,
-    ])
+  const schedule = debt.schedule
+
+  if (schedule && debt.monthly_payment && debt.tenure_months) {
+    if (schedule.next_due) rows.push(['Next due', `${shortDate(schedule.next_due)} · ${formatMoney(debt.monthly_payment)}`])
+    if (centsOf(schedule.behind) > 0) {
+      rows.push(['Behind by', <span key="behind" className="text-destructive">{formatMoney(schedule.behind)}</span>])
+    }
+  } else {
+    const { monthsAtMinimum } = paceOf(debt, today)
+    if (debt.minimum_payment) {
+      rows.push(['Minimum', `${formatMoney(debt.minimum_payment)} a month`])
+      if (monthsAtMinimum !== null) {
+        rows.push(['At the minimum', `~${plural(monthsAtMinimum, 'month')} · ${monthYearAfter(today, monthsAtMinimum)}`])
+      }
+    }
   }
-  rows.push(['Paid in the last 3 months', formatMoney(recentCents / 100)])
+  rows.push(['Rate', rate ? `${rate} · ${RATE_KIND_LABELS[debt.rate_kind].toLowerCase()}` : 'No interest'])
+  rows.push([
+    'Ends',
+    schedule && debt.tenure_months ? `${longDate(schedule.ends_on)} · ${formatTerm(debt.tenure_months)}` : 'No end date',
+  ])
+
   return (
-    <Card title="Pace" aside="No term to follow">
-      <Rows rows={rows} />
-      <p className="text-xs text-muted-foreground">
-        Interest the lender bills goes in as a charge. Without a term, nothing works it out ahead.
-      </p>
-    </Card>
+    <section className="card-surface text-card-foreground">
+      <div className="space-y-1 p-4 pb-2">
+        <h2 className="font-semibold">Plan</h2>
+        <Rows rows={rows} />
+        {debt.note && <p className="pb-2 text-sm text-muted-foreground">{debt.note}</p>}
+      </div>
+      <details className="group border-t border-border">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-primary outline-none focus-visible:bg-muted/60 [&::-webkit-details-marker]:hidden">
+          How it adds up
+          <ChevronRight className="size-4 transition-transform group-open:rotate-90" aria-hidden="true" />
+        </summary>
+        <div className="px-4 pb-3">
+          <Breakdown debt={debt} />
+        </div>
+      </details>
+    </section>
   )
 }
 
@@ -323,24 +288,26 @@ function PaymentDrawer({ groupId, onClose }: { groupId: string | null; onClose: 
 }
 
 /**
- * One debt in full, laid out top to bottom as the questions come:
+ * One debt in full, minimal since 2026-11-13 (mockup
+ * `design/debts-minimal.html` — the user found it overwhelming), each number
+ * said once:
  *
- * - the dark card: what's left, how far through, where it stands against
- *   its schedule, its rank in the household's priority, and every action;
- * - Schedule (a debt with a term: next due, due so far, when it ends) or
- *   Pace (an open-ended one: how long the minimum takes);
- * - Breakdown, the arithmetic as a sum, and Terms, what it was agreed at;
+ * - the dark card: what's left, one bar with "% paid", where it stands
+ *   ("19 payments behind"), its rank in the household's priority, and every
+ *   action;
+ * - Plan: next due, how far behind, rate, when it ends (a card: the minimum
+ *   and how long it takes), with "How it adds up" folded under it. A
+ *   paid-off debt shows the sum instead, open;
  * - History: one timeline of payments, charges and rate changes. A payment
  *   opens its expense, a charge opens to be corrected or deleted, a rate
  *   change opens Interest.
  *
- * Delete sits apart at the bottom: it should never be a neighbour of Pay.
+ * Delete is quiet text at the bottom, never a neighbour of Pay.
  *
- * Beside the list on a big screen the pane is wide enough to pair things up:
- * the actions move to the hero's right, Schedule (or Pace) sits beside
- * Breakdown, and Terms beside History. These are CONTAINER queries, gated on
- * `lg`: what decides it is the pane's width, which the list column and the
- * sidebar eat into, and a tablet's single column must stay the phone layout.
+ * Beside the list on a big screen the pane is wide enough to pair Plan and
+ * History, and to put the actions at the card's right. CONTAINER queries,
+ * gated on `lg`: the pane's width decides, and a tablet's single column must
+ * stay the phone layout.
  */
 export function DebtDetail({
   id,
@@ -384,14 +351,11 @@ export function DebtDetail({
 
   const open = debt.status === 'open'
   const progress = progressOf(debt)
-  const rate = formatRate(debt.current_rate)
-  const term = formatTerm(debt.tenure_months)
   const standing = standingOf(debt)
   const openDebts = debts.filter((row) => row.status === 'open')
   const rank = openDebts.findIndex((row) => row.id === debt.id) + 1
   const lastPayment = debt.payments.at(-1)
   const history = historyOf(debt)
-  const entries = history.length - 1
 
   const actions: Action[] = [
     ...(open ? [{ key: 'pay', label: 'Pay', icon: Wallet, onClick: () => onPay(debt) }] : []),
@@ -404,9 +368,6 @@ export function DebtDetail({
     .filter(Boolean)
     .join(' · ')
 
-  const scheduleCard =
-    open && (debt.schedule ? <ScheduleCard debt={debt} /> : <PaceCard debt={debt} />)
-
   return (
     <div className="@container space-y-4">
       <section className="rounded-xl bg-secondary px-5 pt-4 pb-5 text-secondary-foreground lg:@xl:grid lg:@xl:grid-cols-[minmax(0,1fr)_auto] lg:@xl:items-end lg:@xl:gap-6 lg:@xl:py-5">
@@ -416,8 +377,10 @@ export function DebtDetail({
             <>
               {heading && <p className="text-sm opacity-85">{heading}</p>}
               <p className="mt-1 text-lg font-medium break-words">{debt.name}</p>
-              <p className="mt-1 figure-xl">{formatMoney(debt.remaining)}</p>
-              <p className="text-sm opacity-85">left to pay</p>
+              <p className="mt-2 figure-xl">
+                {formatMoney(debt.remaining)}
+                <span className="ml-1.5 text-sm font-medium tracking-normal opacity-75">left</span>
+              </p>
 
               <div
                 className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-secondary-foreground/15"
@@ -432,23 +395,19 @@ export function DebtDetail({
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="mt-2 text-sm opacity-85">
-                {formatMoney(debt.paid)} of {formatMoney(debt.owed)} paid · {progress}%
-              </p>
-              <p
-                className={cn(
-                  'mt-3 inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                  standing.tone === 'bad' && 'bg-destructive/35 text-secondary-foreground',
-                  standing.tone === 'good' && 'bg-secondary-accent/15 text-secondary-accent',
-                  standing.tone === 'neutral' && 'bg-secondary-foreground/10',
-                )}
-              >
-                {standing.label}
-                {standing.tone === 'bad' &&
-                  debt.schedule &&
-                  centsOf(debt.schedule.behind) >= centsOf(debt.monthly_payment ?? '0') &&
-                  ` · ${formatMoney(debt.schedule.behind)}`}
-              </p>
+              <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="opacity-85">{progress}% paid</span>
+                <span
+                  className={cn(
+                    'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                    standing.tone === 'bad' && 'bg-secondary-negative/20 text-secondary-negative',
+                    standing.tone === 'good' && 'bg-secondary-accent/15 text-secondary-accent',
+                    standing.tone === 'neutral' && 'bg-secondary-foreground/10',
+                  )}
+                >
+                  {standing.label}
+                </span>
+              </div>
             </>
           ) : (
             <div className="grid justify-items-center gap-1 py-2 text-center">
@@ -488,56 +447,19 @@ export function DebtDetail({
         </ul>
       </section>
 
-      {/* A paid-off debt has no Schedule or Pace, so Breakdown takes the row. */}
-      <div
-        className={cn(
-          'flex flex-col gap-4',
-          scheduleCard && 'lg:@2xl:grid lg:@2xl:grid-cols-2 lg:@2xl:items-start',
+      <div className="flex flex-col gap-4 lg:@2xl:grid lg:@2xl:grid-cols-2 lg:@2xl:items-start">
+        {open ? (
+          <PlanCard debt={debt} />
+        ) : (
+          <section className="space-y-2 card-surface p-4 text-card-foreground">
+            <h2 className="font-semibold">How it added up</h2>
+            <Breakdown debt={debt} />
+          </section>
         )}
-      >
-        {scheduleCard}
-        <Card title="Breakdown">
-          <Breakdown debt={debt} />
-        </Card>
-      </div>
 
-      <div className="flex flex-col gap-4 lg:@2xl:grid lg:@2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:@2xl:items-start">
-        <Card
-          title="Terms"
-          aside={
-            <button
-              type="button"
-              onClick={() => onRates(debt)}
-              className="rounded-md text-sm font-semibold text-primary outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
-            >
-              Interest ›
-            </button>
-          }
-        >
-          <Rows
-            rows={[
-              [RATE_KIND_LABELS[debt.rate_kind], rate ?? 'None'],
-              ['Term', term ?? 'Open-ended'],
-              ...(debt.monthly_payment
-                ? ([['Monthly payment', formatMoney(debt.monthly_payment)]] as [string, ReactNode][])
-                : []),
-              ...(debt.minimum_payment
-                ? ([['Minimum asked', formatMoney(debt.minimum_payment)]] as [string, ReactNode][])
-                : []),
-              ['Started', longDate(debt.opened_on)],
-            ]}
-          />
-          {debt.note && <p className="text-sm text-muted-foreground">{debt.note}</p>}
-        </Card>
-
-        <section className="space-y-2">
-          <h2 className="flex items-baseline justify-between gap-3 px-0.5">
-            <span className="text-sm font-semibold">History</span>
-            <span className="text-xs text-muted-foreground">
-              {entries} {entries === 1 ? 'entry' : 'entries'}
-            </span>
-          </h2>
-          <ul className="overflow-hidden card-surface text-card-foreground">
+        <section className="card-surface text-card-foreground">
+          <h2 className="px-4 pt-4 pb-1 font-semibold">History</h2>
+          <ul>
             {history.map((item) => {
               switch (item.kind) {
                 case 'payment':
@@ -594,7 +516,7 @@ export function DebtDetail({
             })}
           </ul>
           {debt.payments.length === 0 && (
-            <p className="px-0.5 text-xs text-muted-foreground">
+            <p className="border-t border-border px-4 py-3 text-xs text-muted-foreground">
               No payments yet. Paying records a real expense from a wallet, and brings this debt down.
             </p>
           )}
@@ -602,13 +524,8 @@ export function DebtDetail({
       </div>
 
       {/* Apart from the rest on purpose: never a neighbour of Pay. */}
-      <div className="pt-2">
-        <Button
-          variant="outline"
-          className="w-full text-destructive lg:@xl:w-auto"
-          onClick={() => onDelete(debt)}
-        >
-          <Trash2 />
+      <div className="flex justify-center pt-1 lg:@xl:justify-start">
+        <Button variant="ghost" className="text-destructive hover:text-destructive" onClick={() => onDelete(debt)}>
           Delete debt
         </Button>
       </div>
