@@ -29,6 +29,9 @@ const centsOf = (amount: string) => Math.round(Number(amount) * 100)
  * Only what's actually held draws (a negative pair, borrowed against, has
  * no share of anything). A row opens the wallet's own page; no menu.
  *
+ * `total` (cents) closes the list with a quiet "Total" row — the page's sum,
+ * not a headline (2026-11-13, the user's call).
+ *
  * `selectedId` marks the wallet open beside the list on a big screen (the
  * split view): an accent row with a primary bar on its left edge, and
  * `aria-current` so a screen reader hears which one it is.
@@ -37,10 +40,13 @@ export function WalletRows({
   wallets,
   from,
   selectedId,
+  total,
 }: {
   wallets: Wallet[]
   from: string
   selectedId?: string
+  /** In cents; drawn as the list's last row when given. */
+  total?: number
 }) {
   const breakdowns = useWalletBreakdowns()
   const { funds } = useFunds()
@@ -66,7 +72,7 @@ export function WalletRows({
         return (
           <li key={wallet.id} className="border-border not-first:border-t">
             <Link
-              to={`/funds/wallets/${wallet.id}`}
+              to={`/wallets/${wallet.id}`}
               state={{ from }}
               aria-current={selected ? 'page' : undefined}
               className={cn(
@@ -109,6 +115,20 @@ export function WalletRows({
           </li>
         )
       })}
+      {total !== undefined && <TotalRow cents={total} />}
     </ul>
+  )
+}
+
+/** The list's sum, as quiet as a row can be: muted label, muted figure. */
+export function TotalRow({ cents }: { cents: number }) {
+  return (
+    <li className="flex items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
+      <span>Total</span>
+      <span className="font-medium tabular-nums">
+        {cents < 0 ? '−' : ''}
+        {formatMoney(Math.abs(cents) / 100)}
+      </span>
+    </li>
   )
 }

@@ -114,7 +114,7 @@ export function BalanceCard({
         <SceneBoundary>
           <Suspense fallback={null}>
             <Link
-              to="/funds?tab=allocations"
+              to="/allocations"
               aria-label="Allocations"
               className="relative col-start-2 row-start-1 -my-2 -mr-2 block h-32 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50 lg:row-span-2 lg:-my-3 lg:-mr-3 lg:h-60"
             >

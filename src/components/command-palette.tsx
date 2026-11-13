@@ -168,10 +168,10 @@ function Palette({ onDone }: { onDone: () => void }) {
       { id: 'page-export', section: 'Go to', label: 'Export data', keywords: 'profile csv excel download', icon: Download, run: go('/profile/export') },
     )
     for (const wallet of live) {
-      list.push({ id: `w-${wallet.id}`, section: 'Go to', label: wallet.name, hint: `Wallet · ${formatMoney(wallet.balance)}`, icon: Wallet, run: go(`/funds/wallets/${wallet.id}`) })
+      list.push({ id: `w-${wallet.id}`, section: 'Go to', label: wallet.name, hint: `Wallet · ${formatMoney(wallet.balance)}`, icon: Wallet, run: go(`/wallets/${wallet.id}`) })
     }
     for (const fund of funds.filter((f) => !f.archived_at)) {
-      list.push({ id: `f-${fund.id}`, section: 'Go to', label: fund.name, hint: `Allocation · ${formatMoney(fund.balance)}`, icon: PieChart, iconColor: colors.get(fund.id), run: go(`/funds/allocations/${fund.id}`) })
+      list.push({ id: `f-${fund.id}`, section: 'Go to', label: fund.name, hint: `Allocation · ${formatMoney(fund.balance)}`, icon: PieChart, iconColor: colors.get(fund.id), run: go(`/allocations/${fund.id}`) })
     }
     for (const occurrence of owed) {
       list.push({ id: `b-${occurrence.expense.id}-${occurrence.due_date}`, section: 'Go to', label: occurrence.expense.name, hint: `Bill · ${formatMoney(occurrence.remaining)} left`, keywords: 'upcoming', icon: CalendarClock, run: go(`/upcoming/${occurrence.expense.id}/${occurrence.due_date}`) })

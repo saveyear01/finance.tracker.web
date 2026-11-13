@@ -597,7 +597,7 @@ export function ActionDrawer({
               <Alert>
                 <AlertDescription>
                   Add a wallet first —{' '}
-                  <Link to="/funds?tab=wallets" className="font-medium text-primary hover:underline">
+                  <Link to="/wallets" className="font-medium text-primary hover:underline">
                     go to Wallets
                   </Link>
                   .

@@ -27,7 +27,7 @@ export function OverdrawnNotice({ funds }: { funds: Fund[] }) {
 
   return (
     <Link
-      to="/funds?tab=allocations"
+      to="/allocations"
       className="flex items-center gap-3 rounded-xl bg-destructive/10 px-4 py-3 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <TriangleAlert className="size-4 shrink-0 text-destructive" aria-hidden="true" />

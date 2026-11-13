@@ -79,7 +79,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
                   const count = badge ? counts[badge] : 0
                   const meta = badge ? BADGE[badge] : null
                   // Which tab of the section is open: the query, or the
-                  // detail page's own segment (/funds/wallets/:id).
+                  // detail page's own segment (/wallets/:id).
                   const tab = params.get('tab') ?? pathname.split('/')[2] ?? children?.[0]?.tab
 
                   return (

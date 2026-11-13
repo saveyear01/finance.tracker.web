@@ -142,7 +142,7 @@ export function TransactionTable() {
             hasWallet ? (
               <Button onClick={() => setRecording('income')}>Record income</Button>
             ) : (
-              <Button nativeButton={false} render={<Link to="/funds?tab=wallets" />}>
+              <Button nativeButton={false} render={<Link to="/wallets" />}>
                 Add a wallet
               </Button>
             )

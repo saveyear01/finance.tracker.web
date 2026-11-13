@@ -167,7 +167,7 @@ export function AllocationEditor() {
       {!canAdd && eligible.length > 0 && (
         <p className="text-center text-sm text-muted-foreground">
           Need another?{' '}
-          <Link to="/funds?tab=allocations" className="font-medium text-primary hover:underline">
+          <Link to="/allocations" className="font-medium text-primary hover:underline">
             Create an allocation
           </Link>
         </p>

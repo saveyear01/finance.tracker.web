@@ -28,6 +28,8 @@ function heldIn(fund: Fund): string {
  * (the allocation's page lists its wallets), no chevron (the whole row is the
  * link; hover and press show it).
  *
+ * `total` (cents) closes the list with a quiet "Total" row (2026-11-13).
+ *
  * `selectedId` marks the allocation open beside the list on a big screen
  * (the split view): an accent row with a primary bar on its left edge, and
  * `aria-current` so a screen reader hears which one it is.
@@ -36,10 +38,13 @@ export function FundRows({
   funds,
   from,
   selectedId,
+  total,
 }: {
   funds: Fund[]
   from: string
   selectedId?: string
+  /** In cents; drawn as the list's last row when given. */
+  total?: number
 }) {
   // Colours are handed out over every active allocation, in the API's order,
   // so a row wears the same one whichever section it is in.
@@ -55,7 +60,7 @@ export function FundRows({
         return (
           <li key={fund.id} className="border-border not-first:border-t">
             <Link
-              to={`/funds/allocations/${fund.id}`}
+              to={`/allocations/${fund.id}`}
               state={{ from }}
               aria-current={selected ? 'page' : undefined}
               className={cn(
@@ -90,6 +95,15 @@ export function FundRows({
           </li>
         )
       })}
+      {total !== undefined && (
+        <li className="flex items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-2.5 text-sm text-muted-foreground">
+          <span>Total</span>
+          <span className="font-medium tabular-nums">
+            {total < 0 ? '−' : ''}
+            {formatMoney(Math.abs(total) / 100)}
+          </span>
+        </li>
+      )}
     </ul>
   )
 }

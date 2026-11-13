@@ -5,8 +5,7 @@ import { SplitView } from '@/components/layouts/split-view'
 import { ActionDrawer, QuickActions, TransactionFeed, type LedgerAction } from '@/features/transactions'
 import { ArchiveWalletDrawer, WalletDetail, WalletDrawer, type Wallet } from '@/features/wallets'
 
-import { useSwitchTab } from './funds-first-row'
-import { FundsList } from './funds-list'
+import { WalletsList } from './wallets-list'
 
 /**
  * One wallet's page: its balance and quick actions — each opening with this
@@ -16,21 +15,20 @@ import { FundsList } from './funds-list'
  * wallets, and recording and the activity from transactions, which already
  * depends on wallets.
  *
- * On a big screen it opens beside the Funds list (Wallets tab, this row
- * marked); on a phone it is a page of its own. Same URL either way.
+ * On a big screen it opens beside the Wallets list (this row marked); on a
+ * phone it is a page of its own. Same URL either way.
  */
-export function FundsWalletDetailRoute() {
+export function WalletDetailRoute() {
   const { walletId } = useParams()
   const [action, setAction] = useState<LedgerAction | null>(null)
   // Each doubles as its drawer's open state.
   const [editing, setEditing] = useState<Wallet | null>(null)
   const [archiving, setArchiving] = useState<Wallet | null>(null)
-  const switchTab = useSwitchTab()
 
   return (
     <>
       <SplitView
-        list={<FundsList tab="wallets" selectedId={walletId} onTabChange={switchTab} />}
+        list={<WalletsList selectedId={walletId} />}
         detail={
           <WalletDetail
             id={walletId}

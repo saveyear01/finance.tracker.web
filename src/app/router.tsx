@@ -7,9 +7,9 @@ import { AnalyticsRoute } from './routes/analytics'
 import { AnalyticsNoteRoute } from './routes/analytics-note'
 import { DebtDetailRoute } from './routes/debt-detail'
 import { DebtsRoute } from './routes/debts'
-import { FundsRoute } from './routes/funds'
-import { FundsAllocationDetailRoute } from './routes/funds-allocation-detail'
-import { FundsWalletDetailRoute } from './routes/funds-wallet-detail'
+import { AllocationDetailRoute } from './routes/allocation-detail'
+import { AllocationsRoute } from './routes/allocations'
+import { FundsDetailRedirect, FundsRedirect } from './routes/funds-redirect'
 import { HomeRoute } from './routes/home'
 import { LoginRoute } from './routes/login'
 import { ProfileRoute } from './routes/profile'
@@ -19,6 +19,8 @@ import { ProfileSettingsRoute } from './routes/profile-settings'
 import { TransactionsRoute } from './routes/transactions'
 import { UpcomingDetailRoute } from './routes/upcoming-detail'
 import { UpcomingRoute } from './routes/upcoming'
+import { WalletDetailRoute } from './routes/wallet-detail'
+import { WalletsRoute } from './routes/wallets'
 
 export function AppRouter() {
   return (
@@ -38,11 +40,14 @@ export function AppRouter() {
           }
         >
           <Route path="/" element={<HomeRoute />} />
-          {/* Wallets and Funds became one page; old links land on its tab. */}
-          <Route path="/wallets" element={<Navigate to="/funds?tab=wallets" replace />} />
-          <Route path="/funds" element={<FundsRoute />} />
-          <Route path="/funds/wallets/:walletId" element={<FundsWalletDetailRoute />} />
-          <Route path="/funds/allocations/:fundId" element={<FundsAllocationDetailRoute />} />
+          {/* Two pages since 2026-11-13; Funds' old URLs land on them. */}
+          <Route path="/wallets" element={<WalletsRoute />} />
+          <Route path="/wallets/:walletId" element={<WalletDetailRoute />} />
+          <Route path="/allocations" element={<AllocationsRoute />} />
+          <Route path="/allocations/:fundId" element={<AllocationDetailRoute />} />
+          <Route path="/funds" element={<FundsRedirect />} />
+          <Route path="/funds/wallets/:id" element={<FundsDetailRedirect to="wallets" />} />
+          <Route path="/funds/allocations/:id" element={<FundsDetailRedirect to="allocations" />} />
           <Route path="/transactions" element={<TransactionsRoute />} />
           <Route path="/upcoming" element={<UpcomingRoute />} />
           <Route path="/upcoming/:expenseId/:dueDate" element={<UpcomingDetailRoute />} />

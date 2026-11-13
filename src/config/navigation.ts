@@ -2,6 +2,7 @@ import {
   ArrowUpDown,
   CalendarClock,
   ChartColumn,
+  ChartPie,
   House,
   Landmark,
   TrendingUp,
@@ -52,17 +53,10 @@ export type NavItem = {
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Home', to: '/', icon: House, group: 'overview', end: true },
   { label: 'Analytics', to: '/analytics', icon: ChartColumn, group: 'overview' },
-  {
-    label: 'Funds',
-    to: '/funds',
-    icon: Wallet,
-    group: 'money',
-    badge: 'overdrawn',
-    children: [
-      { label: 'Wallets', to: '/funds?tab=wallets', tab: 'wallets' },
-      { label: 'Allocations', to: '/funds?tab=allocations', tab: 'allocations' },
-    ],
-  },
+  // Two pages of their own since 2026-11-13 (the user's call): where money
+  // sits, and what it's for. Funds was one page with both as tabs.
+  { label: 'Wallets', to: '/wallets', icon: Wallet, group: 'money' },
+  { label: 'Allocations', to: '/allocations', icon: ChartPie, group: 'money', badge: 'overdrawn' },
   // "Activity" in the UI since 2026-11-13; the route stays /transactions.
   { label: 'Activity', to: '/transactions', icon: ArrowUpDown, group: 'money' },
   { label: 'Investments', to: '/investments', icon: TrendingUp, group: 'money', soon: true },
@@ -82,12 +76,15 @@ export type PillItem = {
 
 /**
  * The phone's pill: five destinations. Plan is Upcoming and Debts as two
- * tabs of one page (the way Funds holds Wallets and Allocations); Profile is
- * the header's avatar, never a tab; Investments joins once it exists.
+ * tabs of one page. Wallets also stands for Allocations (2026-11-13, when
+ * Funds split in two): a phone reaches Allocations from the Wallets page's
+ * link, Home's 3D wallet and the command palette, and the pill stays at
+ * five. Profile is the header's avatar, never a tab; Investments joins once
+ * it exists.
  */
 export const PILL_ITEMS: PillItem[] = [
   { label: 'Home', to: '/', icon: House, end: true, matches: ['/'] },
-  { label: 'Funds', to: '/funds', icon: Wallet, matches: ['/funds'] },
+  { label: 'Wallets', to: '/wallets', icon: Wallet, matches: ['/wallets', '/allocations'] },
   { label: 'Activity', to: '/transactions', icon: ArrowUpDown, matches: ['/transactions'] },
   { label: 'Analytics', to: '/analytics', icon: ChartColumn, matches: ['/analytics'] },
   { label: 'Plan', to: '/upcoming', icon: CalendarClock, matches: ['/upcoming', '/debts'] },
@@ -128,19 +125,9 @@ export const SUB_PAGES: SubPage[] = [
   { path: '/profile/settings', title: 'Profile settings', back: '/profile', splitIn: 'Profile' },
   { path: '/profile/income-split', title: 'Income split', back: '/profile', splitIn: 'Profile' },
   { path: '/profile/export', title: 'Export data', back: '/profile', splitIn: 'Profile' },
-  // One wallet's and one allocation's own page (2026-11-11), back to their tab.
-  {
-    path: '/funds/wallets/:walletId',
-    title: 'Wallet',
-    back: '/funds?tab=wallets',
-    splitIn: 'Funds',
-  },
-  {
-    path: '/funds/allocations/:fundId',
-    title: 'Allocation',
-    back: '/funds?tab=allocations',
-    splitIn: 'Funds',
-  },
+  // One wallet's and one allocation's own page, back to its list.
+  { path: '/wallets/:walletId', title: 'Wallet', back: '/wallets', splitIn: 'Wallets' },
+  { path: '/allocations/:fundId', title: 'Allocation', back: '/allocations', splitIn: 'Allocations' },
   // One debt in full. `:debtId` stands for any one segment — see `matchSubPage`.
   { path: '/debts/:debtId', title: 'Debt', back: '/debts', splitIn: 'Debts' },
   // One due date of one bill.
